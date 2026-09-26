@@ -7,13 +7,17 @@ from photobooth.user_interaction import UserInterface
 
 class FrameChooser():
 
-    def __init__(self) -> None:
+    def __init__(self, ui_adapter=None) -> None:
         self._settings = Settings()
         self._folders = FolderManager(self._settings.get_main_folder_path())
         self._assets = AssetManager()
         self._frame_list = self._assets.get_corners_names()
-        self._ui = UserInterface(self._frame_list)
+        if ui_adapter is not None:
+            self._ui = ui_adapter
+        else:
+            self._ui = UserInterface(self._frame_list)
         self._editor = Tailor()
+
         # 
         self._SINGLE_FRAME = False
         self._RANDOM_FRAME = True

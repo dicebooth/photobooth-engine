@@ -29,6 +29,7 @@ class FolderManager:
         self._current_folder_path = os.path.join(user_data_path, 'current')
         self._originals_folder_path = os.path.join(user_data_path, 'originals')
         self._output_folder_path = os.path.join(user_data_path, 'output')
+        self._framed_photos_folder_path = os.path.join(user_data_path, 'framed')
 
         # then we check the folders consistency
         self._folder_consistency_assurance()
@@ -42,7 +43,7 @@ class FolderManager:
         # if the sub-folders are missing, they will be created
         user_data_path = os.path.join(self._main_folder_path, 'user_data')
         folder_list = [self._main_folder_path, user_data_path, self._current_folder_path,
-                       self._originals_folder_path, self._output_folder_path]
+                       self._originals_folder_path, self._output_folder_path, self._framed_photos_folder_path]
         for folder in folder_list:
             if not os.path.exists(folder):
                 os.makedirs(folder)
@@ -68,6 +69,14 @@ class FolderManager:
         :return: output folder path"""
 
         return self._output_folder_path
+
+    def get_framed_photos_path(self) -> str:
+        """
+        Method which returns the framed photos folder path.
+        :return: framed photos folder path"""
+
+        return self._framed_photos_folder_path
+
 
     def clean_current_path(self, chosen_photo_path: str) -> str:
         """

@@ -179,3 +179,14 @@ class Settings:
         with open(self._settings_path, 'r') as yaml_file:
             yaml_dict = yaml.safe_load(yaml_file)
         return yaml_dict.get('warn_num_photos', DEFAULT_WARN_NUM_PHOTOS)
+
+    def get_ui_mode(self) -> str:
+        """
+        Method which returns the UI mode (gui or cli) set in settings.yaml file.
+        :return: UI mode ('gui' or 'cli')
+        """
+        from photobooth.consts import DEFAULT_UI_MODE
+        with open(self._settings_path, 'r') as yaml_file:
+            yaml_dict = yaml.safe_load(yaml_file)
+        return yaml_dict.get('ui_mode', DEFAULT_UI_MODE).strip().lower()
+

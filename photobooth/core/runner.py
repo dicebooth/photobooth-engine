@@ -23,7 +23,7 @@ It provides methods to manage the life cycle of camera, editing and printing.
 
 class Runner:
 
-    def __init__(self):
+    def __init__(self, gui_adapter=None):
         """
         Constructor method.
         """
@@ -37,8 +37,13 @@ class Runner:
         self._continue = True
         self._file_naming = FileNaming()
         self._assets = AssetManager()
-        self._ui = UserInterface(self._assets.get_corners_names())
-        self._frame_chooser = FrameChooser()
+        if gui_adapter is not None:
+            self._ui = gui_adapter
+        else:
+            self._ui = UserInterface(self._assets.get_corners_names())
+        self._frame_chooser = FrameChooser(ui_adapter=self._ui)
+
+
         # if in asset only one corner is present,
         # there is no need to ask the user every time which one apply
         self._SINGLE_FRAME = False
@@ -74,7 +79,7 @@ class Runner:
         At the end if there are 2 or more photos in the printing queue the printing process starts.
         """
 
-        disaster_has_happened = resume_old_session(self._folders.get_current_path())
+        disaster_has_happened = resume_old_session(self._folders.get_current_path(), self._ui)
         photo_path = ''
         if isinstance(disaster_has_happened, str):
             photo_path = disaster_has_happened
@@ -86,8 +91,21 @@ class Runner:
             self._folders.clean_current_path(photo_path)
             return
 
+        # Save single framed photo to user_data/framed folder
+        try:
+            framed_img = self._editor.prepare_single_photo(photo_path, effect_path)
+            framed_folder = self._folders.get_framed_photos_path()
+            framed_file_name = os.path.basename(photo_path)
+            framed_save_path = os.path.join(framed_folder, framed_file_name)
+            framed_img.save(framed_save_path)
+            os.chmod(framed_save_path, 0o777)
+        except Exception as e:
+            print(f"Error saving single framed photo: {e}")
+
+
         # ----   send to the server  ----
         self._backend.send_photo_and_edit(photo_path, effect_path)
+
         # -------------------------------
 
         times = self._ui.choose_times_to_print()
