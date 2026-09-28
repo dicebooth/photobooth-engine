@@ -6,7 +6,7 @@ __pycache__/
 .pytest_cache/
 
 # Project files
-assets/
+/assets/
 settings-prod.yaml
 settings.yaml
 temp_data.yaml
