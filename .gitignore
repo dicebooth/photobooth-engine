@@ -18,6 +18,7 @@ settings-prod.yaml
 
 # IDE / run configurations
 .idea/
+.vscode/
 .run/
 
 # Output files
