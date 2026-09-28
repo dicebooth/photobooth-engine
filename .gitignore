@@ -16,6 +16,10 @@ temp_data.yaml
 photobooth-upload.log
 settings-prod.yaml
 
+# IDE / run configurations
+.idea/
+.run/
+
 # Output files
 user_data/
 temp_data.yaml
