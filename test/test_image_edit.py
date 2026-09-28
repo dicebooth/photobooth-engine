@@ -8,7 +8,7 @@ def images_equal(a, b):
     return a.size == b.size and ImageChops.difference(a, b).getbbox() is None
 
 def test_photo_edit():
-    photo_path = './test/assets/in/photo.jpg'
+    photo_path = './test/assets/mock/photo.jpg'
     frame_path = './test/assets/frame.png'
     test_path = './test/assets/test.png'
 
@@ -21,7 +21,7 @@ def test_photo_edit():
 
 
 def test_edits_to_print():
-    photo_path = './test/assets/in/photo.jpg'
+    photo_path = './test/assets/mock/photo.jpg'
     frame_path = './test/assets/frame.png'
     test_path = './test/assets/edits_to_print.jpg'
     tmp_path = './test/tmp'
