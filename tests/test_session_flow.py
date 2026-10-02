@@ -6,11 +6,11 @@ import yaml
 from PIL import Image, ImageChops
 
 from photobooth import consts
-from photobooth.api.camera.camera_service import CameraService
-from photobooth.api.printer_api import Printer
 from photobooth.core.settings import Settings
 from photobooth.main import build_gateway
 from photobooth.presentation.cli.session_cli import SessionCli
+
+from simulated_hardware import patch_camera, patch_printer
 
 ASSETS_DIR = os.path.join(os.path.dirname(__file__), 'assets')
 SAMPLE_PHOTO = os.path.join(ASSETS_DIR, 'mock', 'photo.jpg')
@@ -74,28 +74,16 @@ class ScriptedInteraction:
 @pytest.fixture
 def fake_hardware(monkeypatch):
     """
-    Replaces the camera and the printer adapters with test doubles, so the
-    session flow can be exercised without real hardware (monkey patching).
+    Replaces the camera and printer adapters with the test doubles defined in
+    simulated_hardware, so the session flow can be exercised without real
+    hardware (monkey patching).
 
     :return: list of the files "printed" during the test
     """
     printed_files = []
 
-    def fake_capture(self, path, photo_name):
-        target = os.path.join(path, photo_name)
-        shutil.copyfile(SAMPLE_PHOTO, target)
-        return target
-
-    monkeypatch.setattr(CameraService, 'init_camera', lambda self: None)
-    monkeypatch.setattr(CameraService, 'stop_camera', lambda self: None)
-    monkeypatch.setattr(CameraService, 'capture_via_camera', fake_capture)
-    monkeypatch.setattr(CameraService, 'capture_via_pc', fake_capture)
-
-    monkeypatch.setattr(Printer, 'prepare', lambda self: None)
-    monkeypatch.setattr(
-        Printer, 'print_image',
-        lambda self, file_path, printed_photos_number=0: printed_files.append(file_path),
-    )
+    patch_camera(monkeypatch.setattr)
+    patch_printer(monkeypatch.setattr, printed_files.append)
 
     return printed_files
 

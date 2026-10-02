@@ -118,6 +118,21 @@ tests replace the camera and printer adapters with test doubles through
 monkeypatching, so the whole session flow can be exercised on any machine
 (see the Tests section below).
 
+The same doubles are available as an interactive simulator, which runs the real
+CLI session loop with a **simulated shot and a simulated print** (the sample
+photo in `tests/assets/mock/` is used as every shot, and every print is kept in
+`tests/simulated_output/`):
+
+```bash
+uv run python tests/run_simulated_session.py
+```
+
+Run it from the project root (or set `PHOTOBOOTH_HOME`) so `settings.yaml` and
+`Assets/` are found. Each simulated shot copies the sample photo into the session
+folder; the printing queue starts after two photos are queued, so either shoot
+twice or choose `2` copies in a single session to see the simulated print. Exit
+with `Ctrl+C`.
+
 ### 3. Executing Utility Scripts
 
 The engine includes specialized utility scripts under `scripts/`:
@@ -150,7 +165,9 @@ uv run pytest tests/ -v
 - `tests/test_image_edit.py` — image editing/composition unit tests.
 - `tests/test_session_flow.py` — end-to-end session flow with the camera and
   printer adapters replaced by monkeypatching, a scripted interaction and a
-  temporary project home.
+  temporary project home. The fake hardware is defined in
+  `tests/simulated_hardware.py` and reused by the interactive simulator
+  `tests/run_simulated_session.py`.
 - `tests/test_backend.py` — backend integration test, disabled by default. It
   runs only when a backend is available on `localhost:8000` and explicitly
   enabled:

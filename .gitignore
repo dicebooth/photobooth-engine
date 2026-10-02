@@ -27,3 +27,4 @@ settings-prod.yaml
 # Output files
 user_data/
 temp_data.yaml
+tests/simulated_output/
