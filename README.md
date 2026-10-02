@@ -120,18 +120,21 @@ monkeypatching, so the whole session flow can be exercised on any machine
 
 The same doubles are available as an interactive simulator, which runs the real
 CLI session loop with a **simulated shot and a simulated print** (the sample
-photo in `tests/assets/mock/` is used as every shot, and every print is kept in
-`tests/simulated_output/`):
+photo in `tests/assets/mock/` is used as every shot):
 
 ```bash
 uv run python tests/run_simulated_session.py
 ```
 
-Run it from the project root (or set `PHOTOBOOTH_HOME`) so `settings.yaml` and
-`Assets/` are found. Each simulated shot copies the sample photo into the session
-folder; the printing queue starts after two photos are queued, so either shoot
-twice or choose `2` copies in a single session to see the simulated print. Exit
-with `Ctrl+C`.
+Run it from the project root so the project `settings.yaml` and `Assets/` are
+found. The simulator **never writes into the project root**: it builds a
+dedicated home under `tests/simulated_output/home/` (its own `settings.yaml`,
+`Assets/`, `user_data/` and `temp_data.yaml`) and keeps every "printed" photo in
+`tests/simulated_output/`. Set `PHOTOBOOTH_HOME` to use a custom home instead
+(then it is used as-is). Each simulated shot copies the sample photo into the
+session folder; the printing queue starts after two photos are queued, so either
+shoot twice or choose `2` copies in a single session to see the simulated print.
+Exit with `Ctrl+C`.
 
 ### 3. Executing Utility Scripts
 
