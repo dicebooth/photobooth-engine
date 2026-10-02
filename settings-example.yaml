@@ -11,7 +11,7 @@ capture_mode: "camera" # pc or camera
 # Printer Settings
 printer_name: 'Your_Printer_Name' # fetch it from lpstat -p
 print_size: '4x3' # 4x6 or 4x3
-enable_hotfolder: true
+enable_hotfolder: true # WARNING: with the placeholder path below this raises FileNotFoundError on print; set a real printer_hotfolder_path or keep it false
 printer_hotfolder_path: "path_to_your_hotfolder" # take it from DNP Hotfolder settings
 
 # Backend Integration Settings

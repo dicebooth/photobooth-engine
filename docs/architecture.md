@@ -73,8 +73,8 @@ main.py (wiring)
             │     (on reject: CliInteraction.notify_photo_rejected())
             ├─ Gateway.frame_strategy() / next_frame() / preview()
             ├─ CliInteraction.show_preview_image()  →  Gateway.abort_session()
-            ├─ CliInteraction.choose_times_to_print()
             ├─ Gateway.send_to_backend()  (non blocking)
+            ├─ CliInteraction.choose_times_to_print()
             ├─ Gateway.enqueue()
             └─ while Gateway.prints_pending(): Gateway.print_next()
 ```
@@ -119,6 +119,21 @@ These are intentionally unused for now and are kept (not dead code to delete):
   async and sync variants (`upload_pil` / `upload_pil_sync`). This pre-dates
   the layered refactoring; a future cleanup could keep a single implementation
   with a thin async wrapper.
+- `api/local_storage_api.py::AssetManager` assumes that the `Assets/` folder
+  exists and contains at least one PNG. A missing folder raises
+  `FileNotFoundError` (from `os.listdir`); a folder without PNG files makes
+  `is_frame_single()` return `False` and `get_corners_names()` return an empty
+  list, so the `'random'` strategy reaches
+  `FrameChooserService.next_frame_name` and raises `IndexError`.
+- `api/printer_api.py::Printer.get_printer_options` only catches
+  `subprocess.CalledProcessError`: if the `lpoptions` binary is missing,
+  `FileNotFoundError` is raised unhandled from `Printer.prepare()`.
+- `api/camera/gphoto2_camera.py` `capture_via_camera`/`capture_via_pc` call
+  themselves again on `GPhoto2Error` with no limit nor backoff: a persistent
+  error can lead to unbounded recursion.
+- `core/editor_service.py::EditorService._build_output_path` strips a fixed
+  four-character extension (`[:-4]`): it assumes `.jpg`, so `.jpeg`/`.png`
+  names would be truncated incorrectly.
 
 ## Conventions
 

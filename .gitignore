@@ -9,7 +9,7 @@ dist/
 build/
 
 # Project files
-/assets/
+/Assets/
 settings-prod.yaml
 settings.yaml
 temp_data.yaml
@@ -17,7 +17,6 @@ temp_data.yaml
 
 # Logs
 photobooth-upload.log
-settings-prod.yaml
 
 # IDE / run configurations
 .idea/
@@ -26,5 +25,4 @@ settings-prod.yaml
 
 # Output files
 user_data/
-temp_data.yaml
 tests/simulated_output/

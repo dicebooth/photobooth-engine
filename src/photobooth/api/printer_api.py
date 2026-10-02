@@ -38,7 +38,10 @@ class Printer:
 
     def prepare(self) -> None:
 
-        # If print size is 4x6 and we are on a QW410, enable multicut (Cutter=2Inch)
+        # NOTE: the media sent below is 4x6 (dnp4x6), but the condition checks
+        # print_size == '4x3': on a QW410 a 4x3 job is printed on 4x6 media and
+        # cut in two, hence media=dnp4x6 + Cutter=2Inch. The previous comment
+        # said "4x6" and was misleading; the code behaviour is unchanged.
         if self.print_size == '4x3' and 'qw410' in self.printer_name.lower():
             self._filling_command = "-o media=dnp4x6 -o Cutter=2Inch "
             return

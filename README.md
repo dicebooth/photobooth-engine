@@ -40,7 +40,7 @@ The **Photobooth Engine** is a python-based core service designed to capture ima
 
 2. **Clone the Repository**
    ```bash
-   git clone https://github.com/gdgbari/photobooth.git
+   git clone https://github.com/gdgbari/photobooth-engine.git
    cd photobooth
    ```
 
@@ -193,7 +193,7 @@ src/
     └── presentation/         # CLI (interaction + session) and future GUI
 tests/                        # pytest suite
 scripts/                      # Standalone processing scripts
-Assets/                       # Graphical overlays and frames (git-ignored)
+Assets/                       # Graphical overlays and frames (only the sample frame is tracked)
 settings-example.yaml         # Template settings file
 settings.yaml                 # Active runtime configuration file (git-ignored)
 ```
