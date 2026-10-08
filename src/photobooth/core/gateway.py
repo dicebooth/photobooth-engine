@@ -34,7 +34,7 @@ class Gateway:
         Method which prepares camera, queue and printer.
         """
 
-        self._camera.init_camera()
+        self._camera.init()
         self._queue.load_queue()
         self._printer.prepare()
 
@@ -43,7 +43,7 @@ class Gateway:
         return self._continue
 
     def final_cleaning(self):
-        self._camera.stop_camera()
+        self._camera.stop()
         self._queue.dismiss()
 
     # ------------------------------------------------------------------ recovery

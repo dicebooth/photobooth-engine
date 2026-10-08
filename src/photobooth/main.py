@@ -3,7 +3,7 @@ import os
 from photobooth import consts
 from photobooth.api.backend.backend_service import BackendService
 from photobooth.api.backend.logger import setup_logging
-from photobooth.api.camera.camera_service import CameraService
+from photobooth.api.camera.camera_service import build_camera
 from photobooth.api.local_storage_api import AssetManager, FolderManager
 from photobooth.api.printer_api import Printer
 from photobooth.core.editor_service import EditorService
@@ -43,7 +43,7 @@ def build_gateway(home: str, settings: Settings) -> Gateway:
     folders = FolderManager(settings.get_main_folder_path())
     assets = AssetManager(os.path.join(home, consts.ASSETS_DIRNAME))
 
-    camera = CameraService(
+    camera = build_camera(
         camera_name=settings.get_cam_name(),
         connection=settings.get_camera_connection(),
         hotfolder_path=settings.get_camera_hotfolder_path(),

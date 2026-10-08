@@ -18,7 +18,7 @@ src/photobooth/
 │       ├── camera_api.py       # CameraAPI abstract interface
 │       ├── gphoto2_camera.py   # USB driver (gphoto2)
 │       ├── hotfolder_camera.py # WiFi driver (hotfolder polling)
-│       └── camera_service.py   # Driver selection + single API for the core
+│       └── camera_service.py   # build_camera(): driver selection factory
 ├── core/                   # Application logic
 │   ├── gateway.py              # Gateway: the only core entry point for presentation
 │   ├── settings.py             # Settings (settings.yaml)
