@@ -10,48 +10,39 @@ class EditorService:
     EditorService gets the chosen photo and applies the wanted effect.
     It provides methods to edit photos with the selected effects, add padding,
     combine pairs of photos and edit to have one total photo with 2 polaroids inside.
+
+    The service is stateless: every edit receives its inputs directly.
     """
 
-    def __init__(self):
-        self._photo_list = []
-        self._effect_list = []
-        self._output_folder_path = ''
-
-    def set_infos(self, photo_list: list[str], effect_list: list[str], output_folder_path: str):
-        """
-        Information to edit photos together or individually.
-        """
-
-        self._photo_list = photo_list
-        self._effect_list = effect_list
-        self._output_folder_path = output_folder_path
-
-    def _build_output_path(self):
+    def _build_output_path(self, photo_list: list[str], output_folder_path: str):
         """
         Method which builds the final path of the combined/single photo.
         """
 
-        first_photo_name = os.path.splitext(os.path.basename(self._photo_list[0]))[0]
-        second_photo_name = os.path.splitext(os.path.basename(self._photo_list[1]))[0]
+        first_photo_name = os.path.splitext(os.path.basename(photo_list[0]))[0]
+        second_photo_name = os.path.splitext(os.path.basename(photo_list[1]))[0]
         base_name = first_photo_name + '-' + second_photo_name
 
-        path = os.path.join(self._output_folder_path, base_name + '_00.jpg')
+        path = os.path.join(output_folder_path, base_name + '_00.jpg')
         i = 1
         while os.path.exists(path):
-            path = os.path.join(self._output_folder_path, base_name + '_0' + str(i) + '.jpg')
+            path = os.path.join(output_folder_path, base_name + '_0' + str(i) + '.jpg')
             i += 1
         return path
 
-    def edit(self) -> str:
+    def edit(self, photo_list: list[str], effect_list: list[str], output_folder_path: str) -> str:
         """
         Edits the photos
+        :param photo_list: paths of the two photos to combine
+        :param effect_list: path of the effect (frame) for each photo
+        :param output_folder_path: folder where the edited file is saved
         :return: edited file path, as string
         """
 
-        edited_file_path = self._build_output_path()
+        edited_file_path = self._build_output_path(photo_list, output_folder_path)
 
-        first_photo = self.prepare_single_photo(self._photo_list[0], self._effect_list[0])
-        second_photo = self.prepare_single_photo(self._photo_list[1], self._effect_list[1])
+        first_photo = self.prepare_single_photo(photo_list[0], effect_list[0])
+        second_photo = self.prepare_single_photo(photo_list[1], effect_list[1])
         output_file = self._combine_two_photos(first_photo, second_photo)
 
         # HERE PADDING

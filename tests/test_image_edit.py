@@ -34,8 +34,7 @@ def test_edits_to_print(tmp_path):
     tmp_path = str(tmp_path)
 
     editor = EditorService()
-    editor.set_infos([photo_path, photo_path], [frame_path, frame_path], tmp_path)
-    output_path = editor.edit()
+    output_path = editor.edit([photo_path, photo_path], [frame_path, frame_path], tmp_path)
 
     output_image = Image.open(output_path)
     expected_image = Image.open(test_path)

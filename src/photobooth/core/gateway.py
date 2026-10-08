@@ -217,6 +217,5 @@ class Gateway:
 
         photo_list = self._queue.get_photos()
         edit_list = self._queue.get_edits()
-        self._editor.set_infos(photo_list, edit_list, self._folders.get_output_folder_path())
-        joined_photo = self._editor.edit()
+        joined_photo = self._editor.edit(photo_list, edit_list, self._folders.get_output_folder_path())
         self._printer.print_image(joined_photo)
