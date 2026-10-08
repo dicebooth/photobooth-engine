@@ -21,6 +21,22 @@ class CliInteraction:
 
     # ------------------------------------------------------------------ choices
 
+    def _ask_yes_no(self, prompt: str) -> bool:
+        """
+        Method which asks a yes/no question, re-asking until the answer is valid.
+        Empty input and 'y' mean yes, 'n' means no.
+        :param prompt: question to show
+        :return: True for yes, False for no
+        """
+
+        while True:
+            answer = input(prompt).strip().lower()
+            if answer in ('y', ''):
+                return True
+            if answer == 'n':
+                return False
+            print('Some error occurred, please try again')
+
     def ask_resume_session(self) -> bool:
         """
         Method which asks the user if the interrupted session has to be resumed.
@@ -85,18 +101,7 @@ class CliInteraction:
                 else:
                     subprocess.run(["open", abs_photo_path])
 
-        while True:
-            print('Do you like it? [y]/n')
-
-            decision = input('choose: ')
-
-            decision_clean = decision.strip().lower()
-            if decision_clean in ('y', ''):
-                return True
-            elif decision_clean == 'n':
-                return False
-
-            print('Some error occurred, please try again')
+        return self._ask_yes_no('Do you like it? [y]/n: ')
 
     def choose_polaroid_effect(self, frame_list: list) -> str:
         """
@@ -140,19 +145,14 @@ class CliInteraction:
                 times = int(times)
                 if min_num <= times <= max_num:
                     warn_limit = self._settings.get_warn_num_photos()
-                    while True:
-                        if times >= warn_limit:
-                            print(f'WARNING: You selected a high number of copies ({times} copies).')
-                            print('you choose ' + str(times) + ' copies, is it correct?')
-                            ui_input = input('[y]/n: ')
-                            ui_input_clean = ui_input.strip().lower()
-                            if ui_input_clean == 'n':
-                                break
-                            elif ui_input_clean in ('y', ''):
-                                return times
-                        else:
-                            print('all right')
-                            return times
+                    if times < warn_limit:
+                        print('all right')
+                        return times
+                    print(f'WARNING: You selected a high number of copies ({times} copies).')
+                    print('you choose ' + str(times) + ' copies, is it correct?')
+                    if self._ask_yes_no('[y]/n: '):
+                        return times
+                    # 'n': fall through and re-ask the number of copies
             print('Some error occurred, please try again')
 
     # ------------------------------------------------------------------- hints
@@ -195,15 +195,7 @@ class CliInteraction:
         print('here the edit')
         self._show_image(preview_img)
         print('do you like it?')
-        while True:
-            choiche = input('[y]/n: ')
-            choiche_clean = choiche.strip().lower()
-            if choiche_clean in ('y', ''):
-                return True
-            elif choiche_clean == 'n':
-                return False
-            else:
-                print('some error occurred')
+        return self._ask_yes_no('[y]/n: ')
 
     def _show_image(self, img: Image):
         """
