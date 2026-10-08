@@ -32,8 +32,8 @@ class EditorService:
         Method which builds the final path of the combined/single photo.
         """
 
-        first_photo_name = os.path.basename(self._photo_list[0])[:-4]
-        second_photo_name = os.path.basename(self._photo_list[1])[:-4]
+        first_photo_name = os.path.splitext(os.path.basename(self._photo_list[0]))[0]
+        second_photo_name = os.path.splitext(os.path.basename(self._photo_list[1]))[0]
         base_name = first_photo_name + '-' + second_photo_name
 
         path = os.path.join(self._output_folder_path, base_name + '_00.jpg')

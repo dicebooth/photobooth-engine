@@ -129,9 +129,6 @@ These are intentionally unused for now and are kept (not dead code to delete):
 - `api/camera/gphoto2_camera.py` `capture_via_camera`/`capture_via_pc` call
   themselves again on `GPhoto2Error` with no limit nor backoff: a persistent
   error can lead to unbounded recursion.
-- `core/editor_service.py::EditorService._build_output_path` strips a fixed
-  four-character extension (`[:-4]`): it assumes `.jpg`, so `.jpeg`/`.png`
-  names would be truncated incorrectly.
 
 ## Platform notes
 
