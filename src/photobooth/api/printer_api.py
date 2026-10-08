@@ -97,5 +97,7 @@ class Printer:
             print(f'printed photos n.{printed_photos_number} and {printed_photos_number + 1}')
         except subprocess.CalledProcessError as e:
             print(f"An error occurred while printing: {e}")
+            print(f"The issued photo was: {file_path}")
         except FileNotFoundError:
             print("The 'lp' command was not found. Ensure CUPS is installed.")
+            print(f"The issued photo was: {file_path}")
