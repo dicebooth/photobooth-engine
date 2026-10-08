@@ -1,15 +1,12 @@
 import argparse
 import os
 import re
-import sys
+
 from tqdm import tqdm
 
+from photobooth.core.editor_service import EditorService
 
-# Add the project root directory to the Python path
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(project_root)
-
-from photobooth.core.photo_edit_manager import Tailor
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def natural_sort_key(s):
@@ -29,7 +26,7 @@ def find_photos(directory):
 
 
 def check_effect(effect_path):
-    return os.path.isfile(effect_path) & effect_path.lower().endswith('.png')
+    return os.path.isfile(effect_path) and effect_path.lower().endswith('.png')
 
 
 def main():
@@ -37,17 +34,17 @@ def main():
     parser.add_argument(
         '--input_dir',
         help='Directory containing photos to edit.',
-        default='/Users/vitodibari/Projects/GDGProjects/photobooth/test/assets/in'
+        default=os.path.join(PROJECT_ROOT, 'tests/assets/in')
     )
     parser.add_argument(
         '--output_dir',
         help='Directory to save edited photos.',
-        default='/Users/vitodibari/Projects/GDGProjects/photobooth/test/assets/out'
+        default=os.path.join(PROJECT_ROOT, 'tests/assets/out')
     )
     parser.add_argument(
         '--frame_path',
         help='Effect (frame file) path.',
-        default=os.path.join(project_root, 'assets/Milano.png')
+        default=os.path.join(PROJECT_ROOT, 'Assets/frame1.png')
     )
     parser.add_argument(
         '--vertical_alignment',
@@ -60,7 +57,6 @@ def main():
         dest='auto_orientation',
         help="Enable EXIF-based photo orientation correction."
     )
-    parser.set_defaults(keep_orientation=True)
     args = parser.parse_args()
 
     if not os.path.isdir(args.input_dir):
@@ -79,7 +75,7 @@ def main():
         print(f"Error: No effect found in {args.frame_path}.")
         return
 
-    tailor = Tailor()
+    tailor = EditorService()
 
     progress_bar = tqdm(photos, desc="Processing photos")
     for photo in progress_bar:

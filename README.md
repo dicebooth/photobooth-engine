@@ -18,10 +18,11 @@ The **Photobooth Engine** is a python-based core service designed to capture ima
 
 ### Operating System & Dependencies
 - **OS**: Linux (Debian/Ubuntu-based distributions recommended)
-- **Python**: Version `3.8` or higher
+- **Python**: Version `3.14` or higher
 - **System Packages**:
   - `gphoto2` (for camera control and capture)
   - `cups` / `gutenprint` (for printer queue management)
+- **Package/Environment manager**: [`uv`](https://docs.astral.sh/uv/)
 
 ### Supported Hardware
 - **Camera**: Any `gphoto2`-compatible DSLR/Mirrorless camera connected via USB.
@@ -39,15 +40,13 @@ The **Photobooth Engine** is a python-based core service designed to capture ima
 
 2. **Clone the Repository**
    ```bash
-   git clone https://github.com/gdgbari/photobooth.git
-   cd photobooth/engine
+   git clone https://github.com/gdgbari/photobooth-engine.git
+   cd photobooth
    ```
 
-3. **Set Up Python Virtual Environment**
+3. **Set Up the Python Environment** (with `uv`)
    ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip install -r requirements.txt
+   uv sync
    ```
 
 4. **Verify Hardware Connections**
@@ -64,7 +63,7 @@ The **Photobooth Engine** is a python-based core service designed to capture ima
 
 ## Configuration
 
-Before running the engine, create a active `settings.yaml` configuration file by duplicating the provided example template:
+Before running the engine, create an active `settings.yaml` configuration file by duplicating the provided example template:
 
 ```bash
 cp settings-example.yaml settings.yaml
@@ -80,13 +79,11 @@ event_name: "TechConference2026"
 # Camera & Capture Mode
 cam_name: "Canon EOS Rebel T6" # Match exact output from 'gphoto2 --auto-detect'
 camera_connection: "usb"
-capture_mode: "camera"        # Options: 'camera' or 'pc' (for mock/local testing)
-mock_camera: false            # Set to true for hardware-free development
+capture_mode: "camera"        # Options: 'camera' or 'pc'
 
 # Printer Settings
 printer_name: "DNP_DS620"     # Match exact queue name from 'lpstat -p'
 print_size: "4x3"             # Options: '4x3' or '4x6'
-mock_printer: false           # Set to true to bypass physical printing
 enable_hotfolder: false
 ```
 
@@ -98,22 +95,46 @@ enable_hotfolder: false
 To launch the main photobooth execution loop with active hardware (camera & printer):
 
 ```bash
-python3 photobooth/main.py
+uv run photobooth
 ```
 
-### 2. Development & Simulation Mode (Mock Hardware)
-To run the engine locally for testing without physical camera or printer connected:
+or equivalently:
 
-1. Enable mock options in `settings.yaml`:
-   ```yaml
-   mock_camera: true
-   mock_printer: true
-   capture_mode: "pc"
-   ```
-2. Execute the engine:
-   ```bash
-   python3 photobooth/main.py
-   ```
+```bash
+uv run python -m photobooth.main
+```
+
+Both commands must be run from the project root (the folder with `settings.yaml` and `Assets/`).
+Alternatively you can point the application at another folder with the `PHOTOBOOTH_HOME` environment variable:
+
+```bash
+PHOTOBOOTH_HOME=/path/to/photobooth_home uv run photobooth
+```
+
+### 2. Development without hardware
+Running the engine itself always requires real hardware (or the camera/printer
+hotfolders). To develop and test without hardware, use the test suite: the
+tests replace the camera and printer adapters with test doubles through
+monkeypatching, so the whole session flow can be exercised on any machine
+(see the Tests section below).
+
+The same doubles are available as an interactive simulator, which runs the real
+CLI session loop with a **simulated shot and a simulated print** (the sample
+photo in `tests/assets/mock/` is used as every shot):
+
+```bash
+uv run python tests/run_simulated_session.py
+```
+
+Run it from the project root so the project `settings.yaml` and `Assets/` are
+found. The simulator **never writes into the project root**: it builds a
+dedicated home under `tests/simulated_output/home/` (its own `settings.yaml`,
+`Assets/`, `user_data/` and `temp_data.yaml`) and keeps every "printed" photo in
+`tests/simulated_output/`. Set `PHOTOBOOTH_HOME` to use a custom home instead
+(then it is used as-is). Each simulated shot copies the sample photo into the
+session folder; the printing queue starts after two photos are queued, so either
+shoot twice or choose `2` copies in a single session to see the simulated print.
+Exit with `Ctrl+C`.
 
 ### 3. Executing Utility Scripts
 
@@ -121,17 +142,41 @@ The engine includes specialized utility scripts under `scripts/`:
 
 - **Camera Discovery**:
   ```bash
-  python3 scripts/list_cameras.py
+  uv run python scripts/list_cameras.py
   ```
 
 - **Batch Image Editing / Framing**:
   ```bash
-  python3 scripts/bulk_edit.py
+  uv run python scripts/bulk_edit.py
   ```
 
 - **Merge Photos to 4x6 Layout**:
   ```bash
-  python3 scripts/merge_to_4x6.py
+  uv run python scripts/merge_to_4x6.py
+  ```
+
+---
+
+## Tests
+
+The test suite runs with `pytest` (configured in `pyproject.toml`):
+
+```bash
+uv run pytest tests/ -v
+```
+
+- `tests/test_image_edit.py` — image editing/composition unit tests.
+- `tests/test_session_flow.py` — end-to-end session flow with the camera and
+  printer adapters replaced by monkeypatching, a scripted interaction and a
+  temporary project home. The fake hardware is defined in
+  `tests/simulated_hardware.py` and reused by the interactive simulator
+  `tests/run_simulated_session.py`.
+- `tests/test_backend.py` — backend integration test, disabled by default. It
+  runs only when a backend is available on `localhost:8000` and explicitly
+  enabled:
+
+  ```bash
+  PHOTOBOOTH_RUN_BACKEND_TESTS=1 uv run pytest tests/test_backend.py -v
   ```
 
 ---
@@ -139,14 +184,26 @@ The engine includes specialized utility scripts under `scripts/`:
 ## Project Structure
 
 ```
-engine/
-├── assets/                 # Graphical overlays, backgrounds, and assets
-├── photobooth/             # Engine core package
-│   ├── core/               # Main runner logic and state management
-│   ├── backend/            # API integration & uploads
-│   ├── main.py             # Application entry point
-│   └── settings_manager.py # YAML configuration loader
-├── scripts/                # Standalone processing scripts
-├── settings-example.yaml   # Template settings file
-└── settings.yaml           # Active runtime configuration file
+docs/
+└── architecture.md           # Layered architecture and dependency rules
+src/
+└── photobooth/
+    ├── main.py               # Composition root + entry point
+    ├── consts.py             # Shared constants
+    ├── api/                  # Adapters: camera (gphoto2/wifi), printer, backend, storage, platform
+    ├── core/                 # Application logic: gateway, editor, queue, naming, frames, recovery
+    ├── db/                   # Infrastructure: state persistence (temp_data.yaml)
+    └── presentation/         # CLI (interaction + session) and future GUI
+tests/                        # pytest suite
+scripts/                      # Standalone processing scripts
+Assets/                       # Graphical overlays and frames (only the sample frame is tracked)
+settings-example.yaml         # Template settings file
+settings.yaml                 # Active runtime configuration file (git-ignored)
 ```
+
+### Architecture in one sentence
+
+`presentation → core → api/db`: the CLI (or a future GUI) orchestrates a session
+by calling only the `core.gateway.Gateway`, which never interacts with the user;
+adapters in `api/` talk to cameras, printers, backend and filesystem, while
+`db/state_store.py` is the single persistence point.

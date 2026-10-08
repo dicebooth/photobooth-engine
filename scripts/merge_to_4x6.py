@@ -2,13 +2,9 @@ import argparse
 import os
 import re
 import sys
+
 from PIL import Image, ImageOps
 from tqdm import tqdm
-
-
-# Add the project root directory to the Python path
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(project_root)
 
 
 def natural_sort_key(s):
