@@ -125,15 +125,20 @@ These are intentionally unused for now and are kept (not dead code to delete):
   `is_frame_single()` return `False` and `get_corners_names()` return an empty
   list, so the `'random'` strategy reaches
   `FrameChooserService.next_frame_name` and raises `IndexError`.
-- `api/printer_api.py::Printer.get_printer_options` only catches
-  `subprocess.CalledProcessError`: if the `lpoptions` binary is missing,
-  `FileNotFoundError` is raised unhandled from `Printer.prepare()`.
 - `api/camera/gphoto2_camera.py` `capture_via_camera`/`capture_via_pc` call
   themselves again on `GPhoto2Error` with no limit nor backoff: a persistent
   error can lead to unbounded recursion.
 - `core/editor_service.py::EditorService._build_output_path` strips a fixed
   four-character extension (`[:-4]`): it assumes `.jpg`, so `.jpeg`/`.png`
   names would be truncated incorrectly.
+
+## Platform notes
+
+- `api/printer_api.py::Printer.get_printer_options` handles a missing
+  `lpoptions` binary (e.g. macOS or non-CUPS environments) by catching
+  `FileNotFoundError` and returning an error string, so `Printer.prepare()`
+  degrades gracefully instead of crashing. This fix was developed and verified
+  on Linux only; it could not be tested on macOS.
 
 ## Conventions
 

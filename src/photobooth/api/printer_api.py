@@ -69,7 +69,10 @@ class Printer:
                 check=True
             )
             return result.stdout
-        except subprocess.CalledProcessError as e:
+        except (subprocess.CalledProcessError, FileNotFoundError) as e:
+            # FileNotFoundError: lpoptions is missing from $PATH (e.g. macOS or
+            # non-CUPS environments): return an error string instead of crashing
+            # Printer.prepare() at startup.
             return f"Errore: {e}"
 
     def print_image(self, file_path, printed_photos_number=0):
