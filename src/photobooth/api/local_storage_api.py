@@ -94,13 +94,13 @@ class AssetManager:
 
     def is_frame_single(self) -> bool:
         """
-        Method which checks if the assets folder contains only one effect.
+        Method which checks if the assets folder contains only one frame.
         :return: True if only one effect is present, False otherwise
         """
 
-        # check if the assets folder contains only one frame
-        # if so, then we can skip the user choice
-        return len(os.listdir(self._assets_path)) == 1
+        # count only the PNG frames: OS metadata files (.DS_Store, Thumbs.db)
+        # or other non-PNG files must not be counted as frames
+        return len(self.get_corners_names()) == 1
 
     def get_corners_names(self) -> list:
         """

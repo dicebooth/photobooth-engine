@@ -120,11 +120,12 @@ These are intentionally unused for now and are kept (not dead code to delete):
   the layered refactoring; a future cleanup could keep a single implementation
   with a thin async wrapper.
 - `api/local_storage_api.py::AssetManager` assumes that the `Assets/` folder
-  exists and contains at least one PNG. A missing folder raises
-  `FileNotFoundError` (from `os.listdir`); a folder without PNG files makes
-  `is_frame_single()` return `False` and `get_corners_names()` return an empty
-  list, so the `'random'` strategy reaches
-  `FrameChooserService.next_frame_name` and raises `IndexError`.
+  exists: a missing folder raises `FileNotFoundError` (from `os.listdir`).
+  A folder without PNG files makes `is_frame_single()` return `False` and
+  `get_corners_names()` return an empty list, so the `'random'` strategy
+  reaches `FrameChooserService.next_frame_name` and raises `IndexError`.
+  (`is_frame_single()` counts only PNG frames, so OS metadata files such as
+  `.DS_Store` are ignored.)
 - `api/camera/gphoto2_camera.py` `capture_via_camera`/`capture_via_pc` call
   themselves again on `GPhoto2Error` with no limit nor backoff: a persistent
   error can lead to unbounded recursion.
