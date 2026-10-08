@@ -11,8 +11,8 @@ src/photobooth/
 │   ├── printer_api.py          # Printer (lp/CUPS or DNP hotfolder)
 │   ├── platform_api.py         # Platform, detect_os, camera_is_connected
 │   ├── backend/                # Backend HTTP integration
-│   │   ├── backend_api.py      # PhotoAPIClient (login, upload, download)
-│   │   ├── backend_service.py  # BackendService (fire-and-forget upload)
+│   │   ├── backend.py          # PhotoAPIClient (login, upload, download)
+│   │   ├── backend_api.py      # BackendService (fire-and-forget upload)
 │   │   └── logger.py           # setup_logging(log_file)
 │   └── camera/                 # Camera adapters (gphoto2-agnostic)
 │       ├── camera_api.py       # build_camera(): driver selection factory (entry point)
@@ -112,7 +112,7 @@ These are intentionally unused for now and are kept (not dead code to delete):
 
 ## Known technical debt
 
-- `api/backend/backend_api.py` duplicates the same upload/login flow for the
+- `api/backend/backend.py` duplicates the same upload/login flow for the
   async and sync variants (`upload_pil` / `upload_pil_sync`). This pre-dates
   the layered refactoring; a future cleanup could keep a single implementation
   with a thin async wrapper.
@@ -145,9 +145,10 @@ These are intentionally unused for now and are kept (not dead code to delete):
 
 ## Conventions
 
-- `*_api.py` — adapters to external systems (in `api/`).
-- `*_service.py` — application services (in `core/`, or `api/backend/` for the
-  backend service which is only an orchestrator of the HTTP client).
+- `*_api.py` — adapters to external systems (in `api/`); inside a package the
+  `*_api.py` module is its entry point (`camera_api.py::build_camera`,
+  `backend_api.py::BackendService`).
+- `*_service.py` — application services (in `core/`).
 - `interaction_cli.py` — prompt/render implementations;
   `session_cli.py` — the CLI session script.
 - `Gateway` has no suffix: it is the core facade.

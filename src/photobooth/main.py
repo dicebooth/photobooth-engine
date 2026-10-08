@@ -1,7 +1,7 @@
 import os
 
 from photobooth import consts
-from photobooth.api.backend.backend_service import BackendService
+from photobooth.api.backend.backend_api import BackendService
 from photobooth.api.backend.logger import setup_logging
 from photobooth.api.camera.camera_api import build_camera
 from photobooth.api.local_storage_api import AssetManager, FolderManager

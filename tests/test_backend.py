@@ -4,7 +4,7 @@ import socket
 import pytest
 from PIL import Image, ImageChops
 
-from photobooth.api.backend.backend_api import PhotoAPIClient
+from photobooth.api.backend.backend import PhotoAPIClient
 from photobooth.consts import DEFAULT_BACKEND_URL
 
 ASSETS_DIR = os.path.join(os.path.dirname(__file__), 'assets')
