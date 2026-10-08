@@ -108,7 +108,7 @@ class SessionCli:
         if self._gateway.frame_strategy() == 'manual':
             return self._choose_frame_manually(photo_path)
 
-        frame_name = self._gateway.next_frame(photo_path)
+        frame_name = self._gateway.next_frame()
         if not self._gateway.should_preview_frame() or self._interaction.show_preview_image(
                 self._gateway.preview(photo_path, frame_name)):
             return frame_name, True

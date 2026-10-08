@@ -138,10 +138,9 @@ class Gateway:
 
         return self._frame_chooser.available_frames()
 
-    def next_frame(self, photo_path: str) -> str:
+    def next_frame(self) -> str:
         """
         Method which returns the next frame name according to the strategy.
-        :param photo_path: photo path the frame will be applied to
         :return: frame name
         """
 

@@ -105,9 +105,6 @@ These are intentionally unused for now and are kept (not dead code to delete):
 
 - `core/disaster_recovery.py::has_pending_session()` — not called yet; it is
   the boolean counterpart of `pending_photos()`.
-- `Gateway.next_frame(photo_path)` — the `photo_path` parameter is currently
-  ignored; it exists for symmetry with the other gateway calls and for future
-  frame-per-photo logic.
 - `FrameChooserService.DEFAULT_STRATEGY = 'random'` — historical behaviour: the
   `'manual'` strategy is reachable by passing `fallback_strategy='manual'` to
   the constructor (configuration of the strategy from settings is a possible
