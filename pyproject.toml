@@ -3,12 +3,12 @@ name = "photobooth"
 version = "0.1.0"
 description = "Photobooth application"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = [
     "gphoto2>=2.6.3",
-    "pillow==12.2.0",
-    "pkgconfig==1.5.5",
-    "PyYAML==6.0.2",
+    "pillow>=12.2.0",
+    "pkgconfig>=1.5.5",
+    "PyYAML>=6.0.2",
     "httpx",
     "tqdm",
     "timg",

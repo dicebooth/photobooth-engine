@@ -18,7 +18,7 @@ The **Photobooth Engine** is a python-based core service designed to capture ima
 
 ### Operating System & Dependencies
 - **OS**: Linux (Debian/Ubuntu-based distributions recommended)
-- **Python**: Version `3.12` or higher
+- **Python**: Version `3.14` or higher
 - **System Packages**:
   - `gphoto2` (for camera control and capture)
   - `cups` / `gutenprint` (for printer queue management)
