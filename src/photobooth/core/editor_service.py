@@ -12,8 +12,7 @@ class EditorService:
     combine pairs of photos and edit to have one total photo with 2 polaroids inside.
     """
 
-    def __init__(self, print_size: str = None):
-        self._print_size = print_size or consts.DEFAULT_PRINT_SIZE
+    def __init__(self):
         self._photo_list = []
         self._effect_list = []
         self._output_folder_path = ''

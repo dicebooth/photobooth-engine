@@ -50,7 +50,7 @@ def build_gateway(home: str, settings: Settings) -> Gateway:
         state_store=state_store,
     )
 
-    editor = EditorService(settings.get_print_size())
+    editor = EditorService()
     queue = QueueService(state_store)
     naming = NamingService(state_store, settings.get_event_name(), folders)
     frame_chooser = FrameChooserService(assets, settings.get_frame_name())
