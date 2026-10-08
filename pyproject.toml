@@ -9,7 +9,6 @@ dependencies = [
     "pillow==12.2.0",
     "pkgconfig==1.5.5",
     "PyYAML==6.0.2",
-    "requests",
     "httpx",
     "tqdm",
     "timg",
