@@ -26,7 +26,7 @@ def find_photos(directory):
 
 
 def check_effect(effect_path):
-    return os.path.isfile(effect_path) & effect_path.lower().endswith('.png')
+    return os.path.isfile(effect_path) and effect_path.lower().endswith('.png')
 
 
 def main():
@@ -57,7 +57,6 @@ def main():
         dest='auto_orientation',
         help="Enable EXIF-based photo orientation correction."
     )
-    parser.set_defaults(keep_orientation=True)
     args = parser.parse_args()
 
     if not os.path.isdir(args.input_dir):
