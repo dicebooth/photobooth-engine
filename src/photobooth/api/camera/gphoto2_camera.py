@@ -2,16 +2,16 @@ import os
 import time
 
 from photobooth import consts
-from photobooth.api.camera.camera_api import CameraAPI
+from photobooth.api.camera.camera_abc import CameraABC
 from photobooth.api.platform_api import camera_is_connected
 
 
-class GPhoto2Camera(CameraAPI):
+class GPhoto2Camera(CameraABC):
     """
     GPhoto2Camera is the USB camera driver based on the gphoto2 library.
 
     This driver is the only place where gphoto2 is used: swapping the camera
-    library means writing a new driver which implements CameraAPI, without
+    library means writing a new driver which implements CameraABC, without
     touching the rest of the application.
     """
 

@@ -2,10 +2,10 @@ import os
 import time
 
 from photobooth import consts
-from photobooth.api.camera.camera_api import CameraAPI
+from photobooth.api.camera.camera_abc import CameraABC
 
 
-class HotfolderCamera(CameraAPI):
+class HotfolderCamera(CameraABC):
     """
     HotfolderCamera is the WiFi camera driver.
 

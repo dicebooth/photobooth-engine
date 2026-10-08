@@ -1,7 +1,7 @@
 import pytest
 
-from photobooth.api.camera.camera_api import CameraAPI
-from photobooth.api.camera.camera_service import build_camera
+from photobooth.api.camera.camera_abc import CameraABC
+from photobooth.api.camera.camera_api import build_camera
 from photobooth.api.camera.gphoto2_camera import GPhoto2Camera
 from photobooth.api.camera.hotfolder_camera import HotfolderCamera
 from photobooth.db.state_store import StateStore
@@ -11,7 +11,7 @@ def test_build_camera_usb_returns_gphoto2_driver(tmp_path):
     camera = build_camera(camera_name='test', connection='usb')
 
     assert isinstance(camera, GPhoto2Camera)
-    assert isinstance(camera, CameraAPI)
+    assert isinstance(camera, CameraABC)
 
 
 def test_build_camera_wifi_returns_hotfolder_driver(tmp_path):
@@ -24,7 +24,7 @@ def test_build_camera_wifi_returns_hotfolder_driver(tmp_path):
     )
 
     assert isinstance(camera, HotfolderCamera)
-    assert isinstance(camera, CameraAPI)
+    assert isinstance(camera, CameraABC)
 
 
 def test_build_camera_wifi_without_hotfolder_raises():

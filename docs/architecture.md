@@ -15,10 +15,10 @@ src/photobooth/
 │   │   ├── backend_service.py  # BackendService (fire-and-forget upload)
 │   │   └── logger.py           # setup_logging(log_file)
 │   └── camera/                 # Camera adapters (gphoto2-agnostic)
-│       ├── camera_api.py       # CameraAPI abstract interface
+│       ├── camera_api.py       # build_camera(): driver selection factory (entry point)
+│       ├── camera_abc.py       # CameraABC abstract interface
 │       ├── gphoto2_camera.py   # USB driver (gphoto2)
-│       ├── hotfolder_camera.py # WiFi driver (hotfolder polling)
-│       └── camera_service.py   # build_camera(): driver selection factory
+│       └── hotfolder_camera.py # WiFi driver (hotfolder polling)
 ├── core/                   # Application logic
 │   ├── gateway.py              # Gateway: the only core entry point for presentation
 │   ├── settings.py             # Settings (settings.yaml)
@@ -156,5 +156,5 @@ These are intentionally unused for now and are kept (not dead code to delete):
 
 - A `PHOTOBOOTH_HOME`-aware asset/settings migration to move configuration out
   of CWD entirely (the injection points already support it).
-- An extra `api/` driver for a different camera library (only `camera_api.py`
-  and `camera_service.py` would change).
+- An extra `api/` driver for a different camera library (only `camera_abc.py`
+  and `camera_api.py` would change).

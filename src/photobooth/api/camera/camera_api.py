@@ -1,44 +1,23 @@
-from abc import ABC, abstractmethod
+from photobooth.api.camera.camera_abc import CameraABC
+from photobooth.api.camera.gphoto2_camera import GPhoto2Camera
+from photobooth.api.camera.hotfolder_camera import HotfolderCamera
 
 
-class CameraAPI(ABC):
+def build_camera(camera_name: str, connection: str,
+                 hotfolder_path: str = '', state_store=None) -> CameraABC:
     """
-    CameraAPI is the abstract interface of the camera adapter.
+    Factory which selects the right camera driver according to the settings
+    (WiFi hotfolder or gphoto2 USB) and returns it through the CameraABC
+    interface.
 
-    Every camera driver (gphoto2 USB, WiFi hotfolder, ...) implements this
-    interface, so the application is agnostic about how the photos are taken
-    and a future driver can be plugged in without touching the core.
-
-    Methods are fully headless: user prompts belong to the presentation layer.
+    The core only knows this interface: it is fully agnostic about gphoto2
+    and about how the photos are taken.
     """
-
-    @abstractmethod
-    def init(self):
-        """
-        Method which initializes the camera, waiting for it to be available.
-        """
-
-    @abstractmethod
-    def stop(self):
-        """
-        Method which releases the camera.
-        """
-
-    @abstractmethod
-    def capture_via_camera(self, path: str, photo_name: str) -> str:
-        """
-        Method which takes a photo waiting for the camera-side trigger
-        (the user presses the shutter button on the camera).
-        :param path: the path where the photo has to be saved
-        :param photo_name: the name of the photo to be saved
-        :return: shot photo path
-        """
-
-    @abstractmethod
-    def capture_via_pc(self, path: str, photo_name: str) -> str:
-        """
-        Method which takes a photo triggered from the PC.
-        :param path: the path where the photo has to be saved
-        :param photo_name: the name of the photo to be saved
-        :return: shot photo path
-        """
+    if connection == 'wifi':
+        if not hotfolder_path or state_store is None:
+            raise ValueError(
+                "WiFi camera connection requires 'camera_hotfolder_path' in settings.yaml "
+                "and a state store: check the camera configuration."
+            )
+        return HotfolderCamera(hotfolder_path, state_store)
+    return GPhoto2Camera(camera_name)
