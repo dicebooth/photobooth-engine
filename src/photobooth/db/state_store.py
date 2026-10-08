@@ -30,8 +30,26 @@ class StateStore:
             return yaml.safe_load(yaml_file) or {}
 
     def _write(self, data: dict):
-        with open(self._path, 'w') as yaml_file:
+        # Atomic write: dump to a sibling temp file, fsync it, then rename it
+        # over the state file. A crash or power loss mid-write can never leave
+        # a truncated/corrupted temp_data.yaml behind.
+        tmp_path = self._path + '.tmp'
+        with open(tmp_path, 'w', encoding='utf-8') as yaml_file:
             yaml.dump(data, yaml_file, default_flow_style=False, allow_unicode=True)
+            yaml_file.flush()
+            os.fsync(yaml_file.fileno())
+
+        os.replace(tmp_path, self._path)
+
+        # Durability of the rename itself: fsync the containing directory,
+        # otherwise a power loss right after the replace could still roll it back.
+        dir_path = os.path.dirname(os.path.abspath(self._path)) or '.'
+        if hasattr(os, 'O_DIRECTORY'):
+            dir_fd = os.open(dir_path, os.O_DIRECTORY)
+            try:
+                os.fsync(dir_fd)
+            finally:
+                os.close(dir_fd)
 
     def _update(self, **updates):
         data = self._read()
