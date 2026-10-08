@@ -129,6 +129,14 @@ These are intentionally unused for now and are kept (not dead code to delete):
 
 ## Platform notes
 
+- `api/platform_api.py` keeps the small `Platform` class (with `is_linux()`,
+  `is_wsl()`, `is_macos()`) instead of exposing raw `sys.platform ==
+  'darwin'`-style checks at the call sites. This is a deliberate decision:
+  the photobooth is a multi-platform system, forcing a single platform
+  constant would be wrong (WSL detection needs `platform.release()` and is
+  not expressible with `sys.platform` alone), and the class masks the string
+  comparisons so callers read as `if os_platform.is_linux()` instead of
+  comparing platform strings inline.
 - `api/printer_api.py::Printer.get_printer_options` handles a missing
   `lpoptions` binary (e.g. macOS or non-CUPS environments) by catching
   `FileNotFoundError` and returning an error string, so `Printer.prepare()`
