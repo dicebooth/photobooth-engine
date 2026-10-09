@@ -106,7 +106,8 @@ class PhotoAPIClient:
                 timeout=self.timeout, headers=self.headers
         ) as client:
             try:
-                r = await client.post(f"{self.base_url}/photos", json={"data": b64})
+                payload = {"data": b64, "filename": photo_name}
+                r = await client.post(f"{self.base_url}/photos", json=payload)
 
                 if r.status_code == 401 and self.client_secret:
                     logger.warning(
@@ -117,7 +118,7 @@ class PhotoAPIClient:
                             timeout=self.timeout, headers=self.headers
                     ) as retry_client:
                         r = await retry_client.post(
-                            f"{self.base_url}/photos", json={"data": b64}
+                            f"{self.base_url}/photos", json=payload
                         )
 
                 r.raise_for_status()
@@ -204,7 +205,8 @@ class PhotoAPIClient:
 
         with httpx.Client(timeout=self.timeout, headers=self.headers) as client:
             try:
-                r = client.post(f"{self.base_url}/photos", json={"data": b64})
+                payload = {"data": b64, "filename": photo_name}
+                r = client.post(f"{self.base_url}/photos", json=payload)
 
                 if r.status_code == 401 and self.client_secret:
                     logger.warning(
@@ -215,7 +217,7 @@ class PhotoAPIClient:
                             timeout=self.timeout, headers=self.headers
                     ) as retry_client:
                         r = retry_client.post(
-                            f"{self.base_url}/photos", json={"data": b64}
+                            f"{self.base_url}/photos", json=payload
                         )
 
                 r.raise_for_status()
