@@ -11,6 +11,7 @@ settings-prod.yaml
 settings.yaml
 temp_data.yaml
 .env*
+web-cert/
 
 # Logs
 photobooth-upload.log

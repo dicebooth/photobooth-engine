@@ -9,7 +9,7 @@ import queue
 from PIL import Image, ImageTk
 
 from photobooth.settings_manager import Settings
-from photobooth.utils import camera_is_connected
+from photobooth.utils import check_hardware_status
 
 
 class PhotoboothGUI:
@@ -31,6 +31,10 @@ class PhotoboothGUI:
         # Inter-thread communication queues
         self.action_queue = queue.Queue()
         self.response_queue = queue.Queue()
+        # Which answer the engine is waiting for ('approval', 'copies' or None).
+        # Guards against double answers when both the GUI and the web portal are active.
+        self._awaiting = None
+        self._response_lock = threading.Lock()
 
         # Internal state variables
         self.camera_connected = False
@@ -178,6 +182,9 @@ class PhotoboothGUI:
 
         self.btn_confirm_copies = ttk.Button(sidebar, text="🖨 Conferma Stampa", style="Print.TButton", state=tk.DISABLED, command=self._on_confirm_copies)
         self.btn_confirm_copies.pack(side=tk.TOP, fill=tk.X, pady=(8, 4), ipady=6)
+
+        self.btn_back = ttk.Button(sidebar, text="↩ Indietro", style="Reject.TButton", state=tk.DISABLED, command=self._on_back)
+        self.btn_back.pack(side=tk.TOP, fill=tk.X, pady=4, ipady=6)
 
         ttk.Separator(sidebar, orient=tk.HORIZONTAL).pack(side=tk.TOP, fill=tk.X, pady=16)
 
@@ -329,21 +336,7 @@ class PhotoboothGUI:
 
     def _start_status_checker(self):
         def check_loop():
-            cam_ok = self._settings.get_mock_camera() or self._settings.get_camera_connection() == 'wifi' or camera_is_connected(self._settings)
-            printer_ok = True
-            if not self._settings.get_mock_printer():
-                if self._settings.get_enable_hotfolder():
-                    hp = self._settings.get_printer_hotfolder_path()
-                    printer_ok = bool(hp and os.path.exists(hp))
-                else:
-                    printer_name = self._settings.get_printer_name()
-                    try:
-                        import subprocess
-                        res = subprocess.run(["lpstat", "-p", printer_name], capture_output=True, text=True)
-                        printer_ok = res.returncode == 0
-                    except Exception:
-                        printer_ok = True
-
+            cam_ok, printer_ok = check_hardware_status(self._settings)
             self.root.after(0, lambda: self.update_camera_status(cam_ok))
             self.root.after(0, lambda: self.update_printer_status(printer_ok))
 
@@ -400,20 +393,40 @@ class PhotoboothGUI:
     def enable_copies(self):
         self.spin_copies.config(state="normal")
         self.btn_confirm_copies.config(state=tk.NORMAL)
+        self.btn_back.config(state=tk.NORMAL)
         self.info_lbl.config(text="Seleziona il numero di copie e conferma la stampa.")
         self.set_status_message("In attesa scelta numero copie...")
 
     def disable_copies(self):
         self.spin_copies.config(state="disabled")
         self.btn_confirm_copies.config(state=tk.DISABLED)
+        self.btn_back.config(state=tk.DISABLED)
+
+    def submit_response(self, kind: str, value) -> bool:
+        """
+        Delivers an answer to the engine if it is waiting for that kind of answer.
+        Thread-safe: called by GUI buttons and by the web portal.
+        :param kind: 'approval' or 'copies'
+        :param value: bool for approval, int for copies
+        :return: True if the answer has been accepted
+        """
+        with self._response_lock:
+            if self._awaiting != kind:
+                return False
+            self._awaiting = None
+            self.response_queue.put(value)
+
+        if kind == 'approval':
+            self.root.after(0, self.disable_approval)
+        else:
+            self.root.after(0, self.disable_copies)
+        return True
 
     def _on_approve(self):
-        self.disable_approval()
-        self.response_queue.put(True)
+        self.submit_response('approval', True)
 
     def _on_reject(self):
-        self.disable_approval()
-        self.response_queue.put(False)
+        self.submit_response('approval', False)
 
     def _on_confirm_copies(self):
         try:
@@ -421,12 +434,15 @@ class PhotoboothGUI:
             min_num = self._settings.get_min_num_photos()
             max_num = self._settings.get_max_num_photos()
             if min_num <= val <= max_num:
-                self.disable_copies()
-                self.response_queue.put(val)
+                self.submit_response('copies', val)
             else:
                 self.info_lbl.config(text=f"Numero copie deve essere tra {min_num} e {max_num}.")
         except ValueError:
             self.info_lbl.config(text="Inserisci un numero valido.")
+
+    def _on_back(self):
+        # None means: undo the approval and show the framed photo again
+        self.submit_response('copies', None)
 
     def remove_last_carousel_item(self):
         """
@@ -444,6 +460,8 @@ class PhotoboothGUI:
                 self.preview_label.config(image="", text="Nessuna foto da mostrare")
 
     def request_approval(self, photo_path_or_img) -> bool:
+        with self._response_lock:
+            self._awaiting = 'approval'
         self.root.after(0, lambda: self.add_photo_to_carousel(photo_path_or_img))
         self.root.after(0, self.enable_approval)
         res = self.response_queue.get()
@@ -452,6 +470,8 @@ class PhotoboothGUI:
         return res
 
     def request_copies(self) -> int:
+        with self._response_lock:
+            self._awaiting = 'copies'
         self.root.after(0, self.enable_copies)
         res = self.response_queue.get()
         return res
@@ -475,9 +495,14 @@ class GUIUserInterface:
     def show_preview_image(self, preview_img) -> bool:
         return self.gui.request_approval(preview_img)
 
-    def choose_times_to_print(self) -> int:
-        self.gui.root.after(0, self.gui.enable_copies)
-        times = self.gui.response_queue.get()
+    def choose_times_to_print(self):
+        """
+        :return: number of copies, or None if the user went back to the photo approval
+        """
+        times = self.gui.request_copies()
+        if times is None:
+            # the photo will be added again to the carousel when shown for approval
+            self.gui.root.after(0, self.gui.remove_last_carousel_item)
         return times
 
     def choose_polaroid_effect(self) -> str:

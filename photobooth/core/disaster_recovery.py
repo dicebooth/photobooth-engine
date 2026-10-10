@@ -10,6 +10,8 @@ def resume_old_session(current_path, ui_adapter=None):
     If in the current folder there are some photos, the user is asked if they want to resume the old session.
     If yes, the photos in the current folder are returned.
     If no, the current folder is cleaned.
+    When the framed preview is enabled no question is asked here: the photo is returned and its framed preview
+    is approved (or discarded, cleaning the current folder) in the normal flow.
     :param current_path: the path of the current folder
     :param ui_adapter: user interface adapter
     :return: the list of the photos in the current folder if the user wants to resume the old session, False otherwise
@@ -26,12 +28,17 @@ def resume_old_session(current_path, ui_adapter=None):
         if not photos_list:
             return False
 
-        # Ask user if they want to recover the photo found in session
         photo_to_recover = os.path.join(current_path, photos_list[0])
         from photobooth.utils import detect_os, get_asset_path_from_name
         from photobooth.core.photo_edit_manager import Tailor
 
         settings = Settings()
+        if settings.get_preview_post_frame():
+            # the framed preview shown right after by the frame chooser is the approval of the recovered photo:
+            # asking here too would make the user approve the same photo twice
+            return photo_to_recover
+
+        # Ask user if they want to recover the photo found in session
         frame_name = settings.get_frame_name() or "cometocode-2026.png"
         if not frame_name.endswith('.png'):
             frame_name += '.png'

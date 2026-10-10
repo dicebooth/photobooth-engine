@@ -12,6 +12,7 @@ from photobooth.backend.logger import setup_logging
 
 import os
 import shutil
+import threading
 from photobooth import utils
 
 """
@@ -52,6 +53,8 @@ class Runner:
                                 enable_hotfolder=self._settings.get_enable_hotfolder(),
                                 hotfolder_path=self._settings.get_printer_hotfolder_path())
         self._backend = BackendManager(self._settings.get_backend_url(), self._settings.get_client_secret())
+        # the print queue is shared between the main loop and reprints requested by the web portal
+        self._print_lock = threading.Lock()
 
     def prepare(self):
         """
@@ -75,7 +78,8 @@ class Runner:
         Method where disaster recovery is applied if something strange happened in the last session, allowing to resume it.
         If there are many effects in the Assets folder, the user is allowed to choose which one to apply.
         Then the edited photo is shown to the user for confirmation.
-        Then the user is asked how many copies of the photo he wants to print.
+        Then the user is asked how many copies of the photo he wants to print: the user interface may return None
+        to go back and review the framed photo again.
         At the end if there are 2 or more photos in the printing queue the printing process starts.
         """
 
@@ -87,10 +91,19 @@ class Runner:
             [photo_path, _] = self.choice_photo_with_preview()
 
         [effect_path, photo_accepted] = self._frame_chooser.choose_frame(photo_path)
+        times = None
+        while photo_accepted:
+            times = self._ui.choose_times_to_print()
+            if times is not None:
+                break
+            # the user went back from the copies selection: show the same framed photo again
+            photo_accepted = self._frame_chooser.confirm_frame(photo_path, effect_path)
+
         if not photo_accepted:
             self._folders.clean_current_path(photo_path)
             return
 
+        # framed photo and upload happen only once the copies are confirmed, so going back leaves no trace
         # Save single framed photo to user_data/framed folder
         try:
             framed_img = self._editor.prepare_single_photo(photo_path, effect_path)
@@ -108,19 +121,40 @@ class Runner:
 
         # -------------------------------
 
-        times = self._ui.choose_times_to_print()
         # the photo is added to the queue and the folder get cleared
-        self._queue.add_photo(self._folders.clean_current_path(photo_path), times)
-        self._queue.add_edit(effect_path, times)
+        self._enqueue_and_print(self._folders.clean_current_path(photo_path), effect_path, times)
 
-        # printed_photos_number = self._settings.get_printed_photos_number()
-        # counter = 1
-        while self._queue.queue_is_ready():  # if there are 2 or more photos in queue then start to edit
-            path_to_print = self.edit()  # actually there is no more the need to declare here this paths
-            self._printer.print_image(path_to_print)
-            # counter += 2
+    def reprint(self, photo_name: str, times: int) -> int:
+        """
+        Method which prints again a photo of the framed folder, as it is (frame already applied).
+        Thread-safe: it is called by the web portal while the main loop may be waiting for a shot.
+        :param photo_name: file name of the photo in the framed folder
+        :param times: number of copies
+        :return: number of photos still waiting in the queue (prints are made in pairs)
+        """
 
-        # self._settings.update_logs(counter + 1, 'p')
+        photo_path = os.path.join(self._folders.get_framed_photos_path(), os.path.basename(photo_name))
+        if not os.path.isfile(photo_path):
+            raise FileNotFoundError(photo_path)
+
+        # an empty effect tells the editor that the photo is already framed
+        return self._enqueue_and_print(photo_path, '', times)
+
+    def _enqueue_and_print(self, photo_path: str, effect_path: str, times: int) -> int:
+        """
+        Method which adds a photo to the print queue and prints every ready pair.
+        :return: number of photos still waiting in the queue
+        """
+
+        with self._print_lock:
+            self._queue.add_photo(photo_path, times)
+            self._queue.add_edit(effect_path, times)
+
+            while self._queue.queue_is_ready():  # if there are 2 or more photos in queue then start to edit
+                path_to_print = self.edit()  # actually there is no more the need to declare here this paths
+                self._printer.print_image(path_to_print)
+
+            return self._queue.pending_count()
 
     def choice_photo_with_preview(self):
         """

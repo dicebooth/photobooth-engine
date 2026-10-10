@@ -66,6 +66,14 @@ class QueueManager:
             self._dict['edits'].append(edit_path)
         self._update_yaml()
 
+    def pending_count(self) -> int:
+        """
+        Method which returns how many photos are waiting in the queue to be printed.
+        :return: number of queued photos
+        """
+
+        return len(self._dict['photos'])
+
     def get_photos(self) -> list[str]:
         """
         Method which gets the photos from the queue and removes them.

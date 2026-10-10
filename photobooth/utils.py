@@ -107,3 +107,29 @@ def camera_is_connected(settings_manager: Settings) -> bool:
             return True
 
     return False
+
+
+def check_hardware_status(settings_manager: Settings) -> tuple:
+    """
+    Method which verifies camera and printer availability according to settings.yaml (mocks and hotfolders included).
+    :return: (camera_ok, printer_ok)
+    """
+
+    try:
+        cam_ok = settings_manager.get_mock_camera() or settings_manager.get_camera_connection() == 'wifi' \
+            or camera_is_connected(settings_manager)
+    except Exception:
+        cam_ok = False
+    printer_ok = True
+    if not settings_manager.get_mock_printer():
+        if settings_manager.get_enable_hotfolder():
+            hotfolder_path = settings_manager.get_printer_hotfolder_path()
+            printer_ok = bool(hotfolder_path and os.path.exists(hotfolder_path))
+        else:
+            try:
+                res = subprocess.run(["lpstat", "-p", settings_manager.get_printer_name()], capture_output=True, text=True)
+                printer_ok = res.returncode == 0
+            except Exception:
+                printer_ok = True
+
+    return cam_ok, printer_ok

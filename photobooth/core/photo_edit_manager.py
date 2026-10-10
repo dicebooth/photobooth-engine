@@ -52,8 +52,8 @@ class Tailor:
 
         edited_file_path = self._build_output_path()
 
-        first_photo = self.prepare_single_photo(self._photo_list[0], self._effect_list[0])
-        second_photo = self.prepare_single_photo(self._photo_list[1], self._effect_list[1])
+        first_photo = self._load_queued_photo(self._photo_list[0], self._effect_list[0])
+        second_photo = self._load_queued_photo(self._photo_list[1], self._effect_list[1])
         output_file = self._combine_two_photos(first_photo, second_photo)
 
         # HERE PADDING
@@ -66,6 +66,20 @@ class Tailor:
         os.chmod(edited_file_path, 0o777)
 
         return edited_file_path
+
+    def _load_queued_photo(self, photo, effect) -> Image:
+        """
+        Method which returns a queued photo ready to be combined.
+        An empty effect means the photo is already framed (e.g. a reprint from the framed folder).
+        :param photo: photo path
+        :param effect: effect path, or empty string
+        :return: edited photo
+        """
+
+        if not effect:
+            with Image.open(photo) as img:
+                return img.convert("RGB")
+        return self.prepare_single_photo(photo, effect)
 
     def _combine_two_photos(self, first_photo: Image, second_photo: Image) -> Image:
         """

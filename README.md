@@ -115,7 +115,45 @@ To run the engine locally for testing without physical camera or printer connect
    python3 photobooth/main.py
    ```
 
-### 3. Executing Utility Scripts
+### 3. Mobile Web Portal
+
+The engine can start a mobile-first web portal to drive the photobooth from a smartphone connected to the **same local network**. It offers the same features of the desktop GUI: framed photo preview, approve/discard, number of copies selection and print (with a back button to undo the approval), plus a (hidden) gallery of the photos already taken, from which any photo can be reprinted.
+
+Reprints use the framed photo as it is in `user_data/framed/`. Prints are made in pairs, so a single reprinted copy waits in the queue for the next photo.
+
+1. Build the portal once (requires Node.js 18+):
+   ```bash
+   cd webapp
+   npm install
+   npm run build
+   cd ..
+   ```
+2. Start the engine with the `--web` flag:
+   ```bash
+   python3 photobooth/main.py --web
+   ```
+   The terminal shows the portal address (IP and port) and a QR code to scan with the smartphone. The URL contains an access token, randomly generated at every start.
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--web` | off | Start the web portal |
+| `--web-port` | `8080` | Portal port |
+| `--web-host` | `0.0.0.0` | Address the portal binds to |
+| `--web-token` | random | Fixed access token (useful to keep the same QR code across restarts) |
+| `--web-http` | off | Serve plain HTTP instead of HTTPS (disables the QR scanner camera) |
+
+If the page is opened without the token (e.g. from a bookmark or a home screen shortcut), the access screen offers a **Scansiona QR** button with a live in-page scanner (`@yudiel/react-qr-scanner`, decoder bundled so it works without internet).
+
+Browsers expose the camera only on HTTPS, so the portal is served over HTTPS by default with a self-signed certificate, generated with `openssl` on first start and stored in `web-cert/`. The first time a phone opens the portal it shows a security warning to accept (on iPhone: *Show Details* → *visit this website*). Use `--web-http` to serve plain HTTP (the QR scanner is then disabled).
+
+With `ui_mode: gui` the portal runs alongside the desktop GUI and both stay in sync (the first answer wins). With `ui_mode: cli` the portal replaces the terminal prompts.
+
+To work on the portal UI, run the engine with `--web` and start the Vite dev server (it proxies the API to port 8080):
+```bash
+cd webapp && npm run dev
+```
+
+### 4. Executing Utility Scripts
 
 The engine includes specialized utility scripts under `scripts/`:
 
@@ -144,9 +182,12 @@ engine/
 ├── photobooth/             # Engine core package
 │   ├── core/               # Main runner logic and state management
 │   ├── backend/            # API integration & uploads
+│   ├── gui/                # Tkinter desktop GUI
+│   ├── web/                # Mobile web portal server (HTTP API + SSE)
 │   ├── main.py             # Application entry point
 │   └── settings_manager.py # YAML configuration loader
 ├── scripts/                # Standalone processing scripts
+├── webapp/                 # Mobile web portal UI (React + Vite)
 ├── settings-example.yaml   # Template settings file
 └── settings.yaml           # Active runtime configuration file
 ```

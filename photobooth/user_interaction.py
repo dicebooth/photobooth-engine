@@ -89,10 +89,10 @@ class UserInterface:
 
             print('Some error occurred, please try again')
 
-    def choose_times_to_print(self) -> int:
+    def choose_times_to_print(self):
         """
         Method which shows a menu in order to allow the user to insert the number of photos to print.
-        :return: times number to print the photo
+        :return: times number to print the photo, or None to go back to the photo approval
         """
 
         min_num = self._settings.get_min_num_photos()
@@ -100,7 +100,9 @@ class UserInterface:
 
         print('How many copies of the photo do you want to print?')
         while True:
-            times = input(f'choose between {min_num} up to {max_num}: ')
+            times = input(f'choose between {min_num} up to {max_num} (b to go back): ')
+            if times.strip().lower() == 'b':
+                return None
             if times.isdigit():
                 times = int(times)
                 if min_num <= times <= max_num:

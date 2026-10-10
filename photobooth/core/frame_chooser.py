@@ -46,6 +46,18 @@ class FrameChooser():
 
         return [effect_path, accepted]
 
+    def confirm_frame(self, photo_path, effect_path) -> bool:
+        """
+        Method which shows again the preview of the photo with an already chosen frame,
+        used when the user goes back from the copies selection.
+        The preview is always shown, even if preview_post_frame is disabled, since the user asked for it.
+        :param photo_path: photo path to edit
+        :param effect_path: frame previously chosen
+        :return: True if the framed photo is accepted
+        """
+
+        return self._ui.show_preview_image(self._editor.prepare_single_photo(photo_path, effect_path))
+
     def show_random_edit(self, photo_path):
 
         # TRUE RANDOM
