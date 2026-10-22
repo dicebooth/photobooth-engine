@@ -4,36 +4,39 @@
 
 ```
 src/photobooth/
-├── main.py                 # Composition root: wiring + CLI entry point
-├── consts.py               # Shared constants (paths, defaults, sizes)
-├── api/                    # Adapters to the outside world
-│   ├── local_storage_api.py    # FolderManager (user_data tree), AssetManager (frames)
-│   ├── printer_api.py          # Printer (lp/CUPS or DNP hotfolder)
-│   ├── platform_api.py         # Platform, detect_os, camera_is_connected
-│   ├── backend/                # Backend HTTP integration
-│   │   ├── backend.py          # PhotoAPIClient (login, upload, download)
-│   │   ├── backend_api.py      # BackendService (fire-and-forget upload)
-│   │   └── logger.py           # setup_logging(log_file)
-│   └── camera/                 # Camera adapters (gphoto2-agnostic)
-│       ├── camera_api.py       # build_camera(): driver selection factory (entry point)
-│       ├── camera_abc.py       # CameraABC abstract interface
-│       ├── gphoto2_camera.py   # USB driver (gphoto2)
-│       └── hotfolder_camera.py # WiFi driver (hotfolder polling)
-├── core/                   # Application logic
-│   ├── gateway.py              # Gateway: the only core entry point for presentation
-│   ├── settings.py             # Settings (settings.yaml)
-│   ├── editor_service.py       # EditorService (frame application, composition, padding)
-│   ├── frame_chooser_service.py# Frame strategy (configured/single/random/manual)
-│   ├── queue_service.py        # Photo/edit print queues logic
-│   ├── naming_service.py       # Photo naming + session counter
-│   └── disaster_recovery.py    # Pending session detection
-├── db/                     # Infrastructure / persistence
-│   └── state_store.py          # StateStore (temp_data.yaml: queues, session, wifi id)
-└── presentation/           # User-facing layer
-    ├── cli/
-    │   ├── interaction_cli.py  # CliInteraction: prompts and previews only
-    │   └── session_cli.py      # SessionCli: session orchestration via the gateway
-    └── gui/                    # Placeholder for the future GUI
+├── api/                            # Adapters to the outside world
+│   ├── local_storage_api.py        # FolderManager (user_data tree), AssetManager (frames)
+│   ├── printer_api.py              # Printer (lp/CUPS or DNP hotfolder)
+│   ├── platform_api.py             # Platform, detect_os, camera_is_connected
+│   ├── backend/                    # Backend HTTP integration
+│   │   ├── backend.py              # PhotoAPIClient (login, upload, download)
+│   │   ├── backend_api.py          # BackendService (fire-and-forget upload)
+│   │   └── logger.py               # setup_logging(log_file)
+│   └── camera/                     # Camera adapters (gphoto2-agnostic)
+│       ├── camera_api.py           # build_camera(): driver selection factory (entry point)
+│       ├── camera_abc.py           # CameraABC abstract interface
+│       ├── gphoto2_camera.py       # USB driver (gphoto2)
+│       └── hotfolder_camera.py     # WiFi driver (hotfolder polling)
+├── core/                           # Application logic
+│   ├── gateway.py                  # Gateway: the only core entry point for presentation
+│   ├── settings.py                 # Settings (settings.yaml)
+│   ├── editor_service.py           # EditorService (frame application, composition, padding)
+│   ├── frame_chooser_service.py    # Frame strategy (configured/single/random/manual)
+│   ├── queue_service.py            # Photo/edit print queues logic
+│   ├── naming_service.py           # Photo naming + session counter
+│   └── disaster_recovery.py        # Pending session detection
+├── db/                             # Infrastructure / persistence
+│   └── state_store.py              # StateStore (temp_data.yaml: queues, session, wifi id)
+├── presentation/                   # User-facing layer
+│   ├── cli/                        # Command line interface
+│   │   ├── interaction_cli.py      # CliInteraction: prompts and previews only
+│   │   └── session_cli.py          # SessionCli: session orchestration via the gateway
+│   └── gui/                        # Placeholder for the future GUI
+├── main.py                         # Composition root: wiring + CLI entry point
+└── consts.py                       # Shared constants (paths, defaults, sizes)
+
+
+
 ```
 
 ## Dependency rule
