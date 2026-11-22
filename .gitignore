@@ -26,3 +26,6 @@ photobooth-upload.log
 # Output files
 user_data/
 tests/simulated_output/
+# Claude Code
+.claude/
+skills-lock.json
