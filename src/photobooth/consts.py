@@ -26,6 +26,7 @@ LOGGER_NAME = "photobooth.upload"
 DEFAULT_BACKEND_URL = "http://localhost:8000"
 DEFAULT_CLIENT_ID = "agent"
 DEFAULT_TIMEOUT = (5.0, 30.0)
+UPLOAD_RETRY_DELAY_SEC = 5
 
 # Camera/WiFi settings
 CAMERA_EVENT_TIMEOUT_MS = 1000

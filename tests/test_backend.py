@@ -6,6 +6,7 @@ from PIL import Image, ImageChops
 
 from photobooth.api.backend.backend import PhotoAPIClient
 from photobooth.consts import DEFAULT_BACKEND_URL
+from photobooth.logic.editing.photo_encoder import PhotoEncoder
 
 ASSETS_DIR = os.path.join(os.path.dirname(__file__), 'assets')
 
@@ -49,7 +50,7 @@ def test_backend():
     image = Image.open(test_image_path)
     backend = PhotoAPIClient()
 
-    uuid = backend.upload_pil_sync(image)
+    uuid = backend.upload(PhotoEncoder().to_png_base64(image))
     server_image = backend.download_image_by_id(uuid)
 
     assert images_equal(image, server_image)

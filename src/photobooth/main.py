@@ -1,8 +1,7 @@
 import os
 
 from photobooth import consts
-from photobooth.api.backend.backend_api import BackendService
-from photobooth.api.backend.logger import setup_logging
+from photobooth.api.backend.backend import PhotoAPIClient
 from photobooth.api.camera.camera_api import build_camera
 from photobooth.api.printing.cups_printer import CupsPrinter
 from photobooth.api.printing.hotfolder_printer import HotfolderPrinter
@@ -11,12 +10,15 @@ from photobooth.logic.frames.frame_catalog import FrameCatalog
 from photobooth.logic.frames.frame_chooser_service import FrameChooserService
 from photobooth.logic.gateway import Gateway
 from photobooth.logic.editing.naming_service import NamingService
+from photobooth.logic.editing.photo_encoder import PhotoEncoder
 from photobooth.logic.printing.print_options_resolver import PrintOptionsResolver
 from photobooth.logic.printing.print_service import PrintService
 from photobooth.logic.printing.queue_service import QueueService
 from photobooth.logic.session.folder_manager import FolderManager
 from photobooth.logic.session.originals_archiver import OriginalsArchiver
 from photobooth.logic.settings.settings import Settings
+from photobooth.logic.uploads.logger import setup_logging
+from photobooth.logic.uploads.upload_service import UploadService
 from photobooth.db.state_store import StateStore
 from photobooth.presentation.cli.interaction_cli import CliInteraction
 from photobooth.presentation.cli.session_cli import SessionCli
@@ -70,9 +72,10 @@ def build_gateway(home: str, settings: Settings) -> Gateway:
         print_settings.printer_name, print_settings.print_size, print_settings.printer_options)
     printing = PrintService(queue, editor, folders, printer, options_resolver)
 
-    backend = BackendService(
-        backend_url=settings.get_backend_url(),
-        client_secret=settings.get_client_secret(),
+    upload_settings = settings.uploads
+    backend = UploadService(
+        PhotoAPIClient(base_url=upload_settings.backend_url, client_secret=upload_settings.client_secret),
+        PhotoEncoder(),
     )
 
     return Gateway(settings, folders, archiver, catalog, camera, editor, printing, naming, frame_chooser, backend)
