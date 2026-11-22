@@ -6,7 +6,7 @@ import yaml
 from PIL import Image, ImageChops
 
 from photobooth import consts
-from photobooth.core.settings import Settings
+from photobooth.logic.settings import Settings
 from photobooth.main import build_gateway
 from photobooth.presentation.cli.session_cli import SessionCli
 
@@ -155,7 +155,7 @@ def test_full_session_flow(tmp_path, fake_hardware):
     # The two photos have been edited together and printed
     assert len(os.listdir(output)) == 1
 
-    # The interaction has been driven by the presentation layer, not by the core
+    # The interaction has been driven by the presentation layer, not by the logic layer
     assert 'press_to_shoot' in interaction.prompted
     assert 'confirm_shot' in interaction.prompted
     assert 'show_preview_image' in interaction.prompted

@@ -6,12 +6,12 @@ from photobooth.api.backend.logger import setup_logging
 from photobooth.api.camera.camera_api import build_camera
 from photobooth.api.local_storage_api import AssetManager, FolderManager
 from photobooth.api.printer_api import Printer
-from photobooth.core.editor_service import EditorService
-from photobooth.core.frame_chooser_service import FrameChooserService
-from photobooth.core.gateway import Gateway
-from photobooth.core.naming_service import NamingService
-from photobooth.core.queue_service import QueueService
-from photobooth.core.settings import Settings
+from photobooth.logic.editor_service import EditorService
+from photobooth.logic.frame_chooser_service import FrameChooserService
+from photobooth.logic.gateway import Gateway
+from photobooth.logic.naming_service import NamingService
+from photobooth.logic.queue_service import QueueService
+from photobooth.logic.settings import Settings
 from photobooth.db.state_store import StateStore
 from photobooth.presentation.cli.interaction_cli import CliInteraction
 from photobooth.presentation.cli.session_cli import SessionCli
@@ -32,7 +32,7 @@ def resolve_home() -> str:
 def build_gateway(home: str, settings: Settings) -> Gateway:
     """
     Method which wires all the components (composition root) and returns the
-    core gateway used by the presentation layer.
+    logic gateway used by the presentation layer.
     :param home: project home folder
     :param settings: already loaded settings (single instance, read once)
     :return: Gateway instance

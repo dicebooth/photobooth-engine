@@ -23,7 +23,7 @@ class Printer:
     Printer is the adapter of the printing subsystem (lp/CUPS or DNF hotfolder).
 
     It receives plain values from the composition root: it does not depend on the
-    core layer (Settings) nor on any other layer.
+    logic layer (Settings) nor on any other layer.
     """
 
     def __init__(self, printer_name, user_options=None, print_size=None, enable_hotfolder=False,

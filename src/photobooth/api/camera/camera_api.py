@@ -10,7 +10,7 @@ def build_camera(camera_name: str, connection: str,
     (WiFi hotfolder or gphoto2 USB) and returns it through the CameraABC
     interface.
 
-    The core only knows this interface: it is fully agnostic about gphoto2
+    The logic layer only knows this interface: it is fully agnostic about gphoto2
     and about how the photos are taken.
     """
     if connection == 'wifi':

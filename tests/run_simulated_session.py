@@ -28,7 +28,7 @@ if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
 from photobooth import consts
-from photobooth.core.settings import Settings
+from photobooth.logic.settings import Settings
 from photobooth.main import build_gateway
 from photobooth.presentation.cli.interaction_cli import CliInteraction
 from photobooth.presentation.cli.session_cli import SessionCli

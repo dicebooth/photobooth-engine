@@ -17,8 +17,8 @@ src/photobooth/
 │       ├── camera_abc.py           # CameraABC abstract interface
 │       ├── gphoto2_camera.py       # USB driver (gphoto2)
 │       └── hotfolder_camera.py     # WiFi driver (hotfolder polling)
-├── core/                           # Application logic
-│   ├── gateway.py                  # Gateway: the only core entry point for presentation
+├── logic/                           # Application logic
+│   ├── gateway.py                  # Gateway: the only logic entry point for presentation
 │   ├── settings.py                 # Settings (settings.yaml)
 │   ├── editor_service.py           # EditorService (frame application, composition, padding)
 │   ├── frame_chooser_service.py    # Frame strategy (configured/single/random/manual)
@@ -44,16 +44,16 @@ src/photobooth/
 Dependencies only point downwards:
 
 ```
-presentation  →  core  →  api / db
+presentation  →  logic  →  api / db
 ```
 
 - **Presentation never bypasses the gateway.** `SessionCli` (or the future GUI
   controller) orchestrates a session by calling only `Gateway` methods, and
   delegates every prompt/preview to its interaction implementation
   (`CliInteraction`).
-- **The core never talks to the user.** It has no `input()`, no previews, no
+- **The logic layer never talks to the user.** It has no `input()`, no previews, no
   knowledge of the CLI: every choice is a parameter, every output is a value.
-- **The api layer never imports the core.** Adapters receive plain values
+- **The api layer never imports the logic layer.** Adapters receive plain values
   (names, paths, options, booleans) from `main.py`; the only shared modules are
   `consts.py` and the persistence interfaces they are handed (for example the
   WiFi camera receives the `StateStore` instance to persist `last_read_wifi_id`).
@@ -97,7 +97,7 @@ main.py (wiring)
 
 - `presentation/cli/interaction_cli.py` imports `detect_os` from
   `photobooth.api.platform_api`: this is the **only** allowed exception to the
-  `presentation → core` rule. Launching the OS image viewer is a presentation
+  `presentation → logic` rule. Launching the OS image viewer is a presentation
   concern and it reuses the platform adapter already available in `api/`;
   injecting it through `main.py` was considered but discarded as overkill for a
   small, read-only helper.
@@ -106,7 +106,7 @@ main.py (wiring)
 
 These are intentionally unused for now and are kept (not dead code to delete):
 
-- `core/disaster_recovery.py::has_pending_session()` — not called yet; it is
+- `logic/disaster_recovery.py::has_pending_session()` — not called yet; it is
   the boolean counterpart of `pending_photos()`.
 - `FrameChooserService.DEFAULT_STRATEGY = 'random'` — historical behaviour: the
   `'manual'` strategy is reachable by passing `fallback_strategy='manual'` to
@@ -151,10 +151,10 @@ These are intentionally unused for now and are kept (not dead code to delete):
 - `*_api.py` — adapters to external systems (in `api/`); inside a package the
   `*_api.py` module is its entry point (`camera_api.py::build_camera`,
   `backend_api.py::BackendService`).
-- `*_service.py` — application services (in `core/`).
+- `*_service.py` — application services (in `logic/`).
 - `interaction_cli.py` — prompt/render implementations;
   `session_cli.py` — the CLI session script.
-- `Gateway` has no suffix: it is the core facade.
+- `Gateway` has no suffix: it is the logic facade.
 
 ## Possible future improvements
 

@@ -12,7 +12,7 @@ class CliInteraction:
     CliInteraction is the CLI implementation of the user interactions:
     it only handles prompts, choices and visualizations.
 
-    It never talks to the core services directly: the session script
+    It never talks to the logic services directly: the session script
     (SessionCli) orchestrates the gateway and delegates here every prompt.
     """
 

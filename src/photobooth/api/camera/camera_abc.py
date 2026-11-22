@@ -7,7 +7,7 @@ class CameraABC(ABC):
 
     Every camera driver (gphoto2 USB, WiFi hotfolder, ...) implements this
     interface, so the application is agnostic about how the photos are taken
-    and a future driver can be plugged in without touching the core.
+    and a future driver can be plugged in without touching the logic layer.
 
     Methods are fully headless: user prompts belong to the presentation layer.
     """

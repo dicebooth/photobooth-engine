@@ -1,12 +1,12 @@
 import os
 import shutil
 
-from photobooth.core import disaster_recovery
+from photobooth.logic import disaster_recovery
 
 
 class Gateway:
     """
-    Gateway is the single entry point of the core layer for the presentation layer.
+    Gateway is the single entry point of the logic layer for the presentation layer.
 
     It exposes operations only: it never shows previews, never asks questions and
     never depends on the presentation layer. The CLI (and the future GUI) drives

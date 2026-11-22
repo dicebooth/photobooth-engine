@@ -5,7 +5,7 @@ class BackendService:
     """
     BackendService dispatches the photo upload to the backend.
 
-    It receives the already edited photo (PIL image) from the core gateway:
+    It receives the already edited photo (PIL image) from the logic gateway:
     the re-editing step is no more needed here, as the gateway is the single
     owner of the editing pipeline.
     """

@@ -191,7 +191,7 @@ src/
     ├── main.py               # Composition root + entry point
     ├── consts.py             # Shared constants
     ├── api/                  # Adapters: camera (gphoto2/wifi), printer, backend, storage, platform
-    ├── core/                 # Application logic: gateway, editor, queue, naming, frames, recovery
+    ├── logic/                 # Application logic: gateway, editor, queue, naming, frames, recovery
     ├── db/                   # Infrastructure: state persistence (temp_data.yaml)
     └── presentation/         # CLI (interaction + session) and future GUI
 tests/                        # pytest suite
@@ -203,7 +203,7 @@ settings.yaml                 # Active runtime configuration file (git-ignored)
 
 ### Architecture in one sentence
 
-`presentation → core → api/db`: the CLI (or a future GUI) orchestrates a session
-by calling only the `core.gateway.Gateway`, which never interacts with the user;
+`presentation → logic → api/db`: the CLI (or a future GUI) orchestrates a session
+by calling only the `logic.gateway.Gateway`, which never interacts with the user;
 adapters in `api/` talk to cameras, printers, backend and filesystem, while
 `db/state_store.py` is the single persistence point.

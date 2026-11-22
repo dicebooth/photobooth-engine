@@ -1,7 +1,7 @@
 class SessionCli:
     """
     SessionCli orchestrates a photobooth session: it is the CLI "session script"
-    which drives the core gateway and delegates every user interaction to
+    which drives the logic gateway and delegates every user interaction to
     CliInteraction.
 
     The same script can be reused (or mirrored) by a future GUI controller:
