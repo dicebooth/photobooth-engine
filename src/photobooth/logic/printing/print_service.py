@@ -45,13 +45,6 @@ class PrintService:
         self._queue.load_queue()
         self._options = self._options_resolver.resolve(self._printer.supported_options)
 
-    def dismiss(self):
-        """
-        Method which clears the queue at the end of the application.
-        """
-
-        self._queue.dismiss()
-
     def enqueue(self, photo_path: str, frame_path: str, copies: int):
         """
         Method which adds the photo and its frame to the printing queues.

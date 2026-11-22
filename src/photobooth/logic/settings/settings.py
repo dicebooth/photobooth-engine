@@ -15,8 +15,10 @@ class Settings:
     The settings path is injected by the composition root (main.py), so the
     application can be pointed at any project root without relying on the CWD.
 
-    The file is read once in the constructor: every getter works on the
-    in-memory dictionary, so no further disk access happens during the session.
+    The file is read once in the constructor and exposed as one small typed
+    slice per theme (storage, capture, frames, printing, uploads, interaction):
+    every service receives only the slice it needs. Missing optional keys fall
+    back to the defaults of the slice.
     """
 
     def __init__(self, settings_path: str = None):
@@ -32,154 +34,62 @@ class Settings:
         with open(self._settings_path, 'r') as yaml_file:
             return yaml.safe_load(yaml_file) or {}
 
-    def get_main_folder_path(self) -> str:
+    def _slice(self, model, required: dict, optional: dict):
         """
-        Method which returns the main folder path set in settings.yaml file.
-        :return: main folder path
-        """
-
-        return self._data['main_folder_path']
-
-    def get_printer_name(self) -> str:
-        """
-        Method which returns the printer name set in settings.yaml file.
-        :return: printer name
+        Builds a settings slice from the yaml data.
+        :param model: dataclass of the slice
+        :param required: {field: yaml key} which must be present (KeyError otherwise)
+        :param optional: {field: yaml key} which fall back to the dataclass default
         """
 
-        return self._data['printer_name']
-
-    def get_printer_options(self) -> dict:
-        return self._data.get('printer_options', {})
-
-    def get_cam_name(self) -> str:
-        """
-        Method which returns the camera name set in settings.yaml file.
-        :return: camera name
-        """
-
-        return self._data['cam_name']
-
-    def get_backend_url(self) -> str:
-        return self._data['backend']
-
-    def get_event_name(self) -> str:
-        """
-        Method which returns the event name set in settings.yaml file.
-        :return: event name
-        """
-
-        return self._data['event_name']
-
-    def get_print_size(self) -> str:
-        """
-        Method which returns the print size set in settings.yaml file.
-        :return: print size
-        """
-
-        return self._data.get('print_size', consts.DEFAULT_PRINT_SIZE)  # Defaults to 4x6 if not specified
-
-    def get_client_secret(self) -> str:
-        """
-        Method which returns the client secret set in settings.yaml file.
-        :return: client secret
-        """
-
-        return self._data.get('client_secret', '')
-
-    def get_capture_mode(self) -> str:
-        """
-        Method which returns the capture mode (pc or camera) set in settings.yaml file.
-        :return: capture mode
-        """
-
-        return self._data.get('capture_mode', consts.DEFAULT_CAPTURE_MODE)  # Defaults to pc if not specified
-
-    def get_enable_hotfolder(self) -> bool:
-        return self._data.get('enable_hotfolder', consts.DEFAULT_ENABLE_HOTFOLDER)
-
-    def get_printer_hotfolder_path(self) -> str:
-        return self._data.get('printer_hotfolder_path', '')
-
-    def get_min_num_photos(self) -> int:
-        return self._data.get('min_num_photos', consts.DEFAULT_MIN_NUM_PHOTOS)
-
-    def get_max_num_photos(self) -> int:
-        return self._data.get('max_num_photos', consts.DEFAULT_MAX_NUM_PHOTOS)
-
-    def get_camera_connection(self) -> str:
-        return self._data.get('camera_connection', consts.DEFAULT_CAMERA_CONNECTION)
-
-    def get_camera_hotfolder_path(self) -> str:
-        return self._data.get('camera_hotfolder_path', '')
-
-    def get_frame_name(self) -> str:
-        return self._data.get('frame_name', '')
-
-    def get_preview_pre_frame(self) -> bool:
-        return self._data.get('preview_pre_frame', consts.DEFAULT_PREVIEW_PRE_FRAME)
-
-    def get_preview_post_frame(self) -> bool:
-        return self._data.get('preview_post_frame', consts.DEFAULT_PREVIEW_POST_FRAME)
-
-    def get_terminal_preview(self) -> bool:
-        return self._data.get('terminal_preview', consts.DEFAULT_TERMINAL_PREVIEW)
-
-    def get_terminal_preview_rows(self) -> int:
-        return int(self._data.get('terminal_preview_rows', consts.DEFAULT_TERMINAL_PREVIEW_ROWS))
-
-    def get_warn_num_photos(self) -> int:
-        return self._data.get('warn_num_photos', consts.DEFAULT_WARN_NUM_PHOTOS)
-
-    # ------------------------------------------------------- per-theme slices
+        values = {field: self._data[key] for field, key in required.items()}
+        values.update({field: self._data[key] for field, key in optional.items() if key in self._data})
+        return model(**values)
 
     @property
     def storage(self) -> StorageSettings:
-        return StorageSettings(
-            main_folder_path=self._data['main_folder_path'],
-            event_name=self._data['event_name'],
-        )
+        return self._slice(StorageSettings,
+                           required={'main_folder_path': 'main_folder_path', 'event_name': 'event_name'},
+                           optional={})
 
     @property
     def capture(self) -> CaptureSettings:
-        return CaptureSettings(
-            cam_name=self._data['cam_name'],
-            capture_mode=self.get_capture_mode(),
-            camera_connection=self.get_camera_connection(),
-            camera_hotfolder_path=self.get_camera_hotfolder_path(),
-            preview_pre_frame=self.get_preview_pre_frame(),
-            retry_delay_sec=self._data.get('camera_retry_delay_sec', consts.CAMERA_RETRY_DELAY_SEC),
-        )
+        return self._slice(CaptureSettings,
+                           required={'cam_name': 'cam_name'},
+                           optional={'capture_mode': 'capture_mode',
+                                     'camera_connection': 'camera_connection',
+                                     'camera_hotfolder_path': 'camera_hotfolder_path',
+                                     'preview_pre_frame': 'preview_pre_frame',
+                                     'retry_delay_sec': 'camera_retry_delay_sec'})
 
     @property
     def frames(self) -> FrameSettings:
-        return FrameSettings(
-            frame_name=self.get_frame_name(),
-            preview_post_frame=self.get_preview_post_frame(),
-        )
+        return self._slice(FrameSettings,
+                           required={},
+                           optional={'frame_name': 'frame_name', 'preview_post_frame': 'preview_post_frame'})
 
     @property
     def printing(self) -> PrintSettings:
-        return PrintSettings(
-            printer_name=self._data['printer_name'],
-            printer_options=self.get_printer_options(),
-            print_size=self.get_print_size(),
-            enable_hotfolder=self.get_enable_hotfolder(),
-            printer_hotfolder_path=self.get_printer_hotfolder_path(),
-        )
+        return self._slice(PrintSettings,
+                           required={'printer_name': 'printer_name'},
+                           optional={'printer_options': 'printer_options',
+                                     'print_size': 'print_size',
+                                     'enable_hotfolder': 'enable_hotfolder',
+                                     'printer_hotfolder_path': 'printer_hotfolder_path'})
 
     @property
     def uploads(self) -> UploadSettings:
-        return UploadSettings(
-            backend_url=self._data['backend'],
-            client_secret=self.get_client_secret(),
-        )
+        return self._slice(UploadSettings,
+                           required={'backend_url': 'backend'},
+                           optional={'client_secret': 'client_secret'})
 
     @property
     def interaction(self) -> InteractionSettings:
-        return InteractionSettings(
-            terminal_preview=self.get_terminal_preview(),
-            terminal_preview_rows=self.get_terminal_preview_rows(),
-            min_num_photos=self.get_min_num_photos(),
-            max_num_photos=self.get_max_num_photos(),
-            warn_num_photos=self.get_warn_num_photos(),
-        )
+        settings = self._slice(InteractionSettings,
+                               required={},
+                               optional={'terminal_preview': 'terminal_preview',
+                                         'terminal_preview_rows': 'terminal_preview_rows',
+                                         'min_num_photos': 'min_num_photos',
+                                         'max_num_photos': 'max_num_photos',
+                                         'warn_num_photos': 'warn_num_photos'})
+        return InteractionSettings(**{**settings.__dict__, 'terminal_preview_rows': int(settings.terminal_preview_rows)})

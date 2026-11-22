@@ -29,9 +29,9 @@ if SRC_DIR not in sys.path:
 
 from photobooth import consts
 from photobooth.logic.settings.settings import Settings
-from photobooth.main import build_gateway
+from photobooth.api.platform_api import detect_os
+from photobooth.main import build_services, build_session, setup_console_logging
 from photobooth.presentation.cli.interaction_cli import CliInteraction
-from photobooth.presentation.cli.session_cli import SessionCli
 
 import simulated_hardware
 
@@ -130,19 +130,17 @@ def main():
     simulated_hardware.patch_printer(setattr, simulated_print)
 
     settings = Settings(os.path.join(home, consts.SETTINGS_FILENAME))
-    gateway = build_gateway(home, settings)
+    setup_console_logging()
+    services = build_services(home, settings)
 
     # No backend in simulation: log the upload instead of sending it
-    gateway.send_to_backend = lambda photo_path, frame_name: print(
-        f"[SIMULATED UPLOAD] {os.path.basename(photo_path)} frame={frame_name}")
+    services.uploads.send_photo = lambda edited_photo, photo_name: print(
+        f"[SIMULATED UPLOAD] {photo_name} size={edited_photo.size}")
 
-    session = SessionCli(gateway, CliInteraction(settings))
+    session = build_session(services, CliInteraction(settings.interaction, detect_os()))
     print(f"Simulated photobooth started (home: {home}). Exit with Ctrl+C.")
-    try:
-        session.run()
-    except KeyboardInterrupt:
-        gateway.final_cleaning()
-        print('\nSimulation stopped.')
+    session.run()
+    print('\nSimulation stopped.')
 
 
 if __name__ == '__main__':

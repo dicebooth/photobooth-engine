@@ -7,8 +7,7 @@ from PIL import Image, ImageChops
 
 from photobooth import consts
 from photobooth.logic.settings.settings import Settings
-from photobooth.main import build_gateway
-from photobooth.presentation.cli.session_cli import SessionCli
+from photobooth.main import build_services, build_session
 
 from simulated_hardware import patch_camera, patch_printer
 
@@ -124,27 +123,28 @@ def _build_home(home: str) -> str:
 def test_full_session_flow(tmp_path, fake_hardware):
     home = _build_home(str(tmp_path))
     settings = Settings(os.path.join(home, consts.SETTINGS_FILENAME))
-    gateway = build_gateway(home, settings)
+    services = build_services(home, settings)
 
     # No backend in this test: replace the fire-and-forget upload with a spy
     sent_to_backend = []
-    gateway.send_to_backend = lambda photo_path, frame_name: sent_to_backend.append((photo_path, frame_name))
+    services.uploads.send_photo = lambda edited_photo, photo_name: sent_to_backend.append((edited_photo, photo_name))
 
     interaction = ScriptedInteraction(times_to_print=1)
-    session = SessionCli(gateway, interaction)
+    session = build_session(services, interaction)
 
-    gateway.prepare()
+    services.capture.prepare()
+    services.printing.prepare()
 
     # The frame strategy is 'single' (only one frame in the temporary Assets)
-    assert gateway.frame_strategy() == 'single'
-    assert gateway.available_frames() == ['frame1']
+    assert services.frames.strategy() == 'single'
+    assert services.frames.available_frames() == ['frame1']
 
     # One session is not enough to print: the queue starts from the second photo
     session.main_execution()
-    assert not gateway.prints_pending()
+    assert not services.printing.prints_pending()
 
     session.main_execution()
-    assert not gateway.prints_pending()  # both queued photos have been printed
+    assert not services.printing.prints_pending()  # both queued photos have been printed
 
     storage = os.path.join(home, 'storage', 'user_data')
     originals = os.path.join(storage, 'originals')
@@ -164,9 +164,10 @@ def test_full_session_flow(tmp_path, fake_hardware):
     assert 'show_preview_image' in interaction.prompted
     assert 'choose_times_to_print' in interaction.prompted
 
-    # Both accepted photos have been sent to the backend through the gateway
+    # Both accepted photos have been sent to the backend, framed
     assert len(sent_to_backend) == 2
-    assert all(frame_name == 'frame1.png' for _, frame_name in sent_to_backend)
+    assert [name for _, name in sent_to_backend] == ['TEST_0001_01.jpg', 'TEST_0002_01.jpg']
+    assert all(isinstance(edited, Image.Image) for edited, _ in sent_to_backend)
 
     # The printer received exactly one file, and it is a correct merged photo
     assert len(fake_hardware) == 1
@@ -178,8 +179,8 @@ def test_full_session_flow(tmp_path, fake_hardware):
 def test_pending_session_is_detected_and_discarded(tmp_path, fake_hardware):
     home = _build_home(str(tmp_path))
     settings = Settings(os.path.join(home, consts.SETTINGS_FILENAME))
-    gateway = build_gateway(home, settings)
-    gateway.prepare()
+    services = build_services(home, settings)
+    services.capture.prepare()
 
     storage = os.path.join(home, 'storage', 'user_data')
     current = os.path.join(storage, 'current')
@@ -190,11 +191,11 @@ def test_pending_session_is_detected_and_discarded(tmp_path, fake_hardware):
         os.path.join(current, 'TEST_0001_01.jpg'),
     )
 
-    pending = gateway.pending_photos()
+    pending = services.recovery.pending_photos()
     assert len(pending) == 1
     assert pending[0].endswith('TEST_0001_01.jpg')
 
-    gateway.discard_pending_session()
+    services.recovery.discard_pending()
 
-    assert gateway.pending_photos() == []
+    assert services.recovery.pending_photos() == []
     assert len(os.listdir(os.path.join(storage, 'originals'))) == 1

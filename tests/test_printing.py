@@ -4,6 +4,7 @@ from PIL import Image
 
 from photobooth.api.printing.hotfolder_printer import HotfolderPrinter
 from photobooth.logic.editing.editor_service import EditorService
+from photobooth.logic.frames.frame_compositor import FrameCompositor
 from photobooth.logic.printing.ports import PrintFailed
 from photobooth.logic.printing.print_options_resolver import PrintOptionsResolver
 from photobooth.logic.printing.print_service import PrintService
@@ -81,7 +82,7 @@ class FakeState:
 
 def _print_service(tmp_path, printer):
     folders = FolderManager(str(tmp_path))
-    service = PrintService(QueueService(FakeState()), EditorService(), folders, printer,
+    service = PrintService(QueueService(FakeState()), EditorService(FrameCompositor()), folders, printer,
                            PrintOptionsResolver('any', '4x6'))
     service.prepare()
     return service

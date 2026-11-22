@@ -4,7 +4,7 @@ import re
 
 from tqdm import tqdm
 
-from photobooth.logic.editing.editor_service import EditorService
+from photobooth.logic.frames.frame_compositor import FrameCompositor
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -75,12 +75,12 @@ def main():
         print(f"Error: No effect found in {args.frame_path}.")
         return
 
-    tailor = EditorService()
+    compositor = FrameCompositor()
 
     progress_bar = tqdm(photos, desc="Processing photos")
     for photo in progress_bar:
         progress_bar.set_description(f"Processing {os.path.basename(photo)} with effect {os.path.basename(effect)}")
-        edited_path = tailor.prepare_single_photo(
+        edited_path = compositor.compose(
             photo,
             effect,
             vertical_alignment=args.vertical_alignment,

@@ -4,8 +4,6 @@ import tempfile
 
 from PIL import Image
 
-from photobooth.api.platform_api import detect_os
-
 
 class CliInteraction:
     """
@@ -13,11 +11,17 @@ class CliInteraction:
     it only handles prompts, choices and visualizations.
 
     It never talks to the logic services directly: the session script
-    (SessionCli) orchestrates the gateway and delegates here every prompt.
+    (SessionCli) orchestrates the services and delegates here every prompt.
     """
 
-    def __init__(self, settings):
+    def __init__(self, settings, platform):
+        """
+        :param settings: InteractionSettings (preview and copies limits)
+        :param platform: the operating system the photobooth is running on (injected by the composition root)
+        """
+
         self._settings = settings
+        self._platform = platform
 
     # ------------------------------------------------------------------ choices
 
@@ -75,10 +79,10 @@ class CliInteraction:
         :return: True if the photo is good, False if not
         """
 
-        if self._settings.get_terminal_preview():
+        if self._settings.terminal_preview:
             self._show_terminal_preview(photo_path)
         else:
-            os_platform = detect_os()
+            os_platform = self._platform
             if os_platform.is_linux():
                 subprocess.run(["xdg-open", photo_path])
             elif os_platform.is_wsl():
@@ -135,8 +139,8 @@ class CliInteraction:
         :return: times number to print the photo
         """
 
-        min_num = self._settings.get_min_num_photos()
-        max_num = self._settings.get_max_num_photos()
+        min_num = self._settings.min_num_photos
+        max_num = self._settings.max_num_photos
 
         print('How many copies of the photo do you want to print?')
         while True:
@@ -144,7 +148,7 @@ class CliInteraction:
             if times.isdigit():
                 times = int(times)
                 if min_num <= times <= max_num:
-                    warn_limit = self._settings.get_warn_num_photos()
+                    warn_limit = self._settings.warn_num_photos
                     if times < warn_limit:
                         print('all right')
                         return times
@@ -214,11 +218,11 @@ class CliInteraction:
         Helper method to show an image in a native viewer.
         On macOS, if running as root, it ensures the temporary file has correct permissions for the logged-in user.
         """
-        if self._settings.get_terminal_preview():
+        if self._settings.terminal_preview:
             self._show_terminal_preview(img)
             return
 
-        os_platform = detect_os()
+        os_platform = self._platform
 
         if os_platform.is_macos() and os.geteuid() == 0:
             # On macOS as root, PIL .show() creates a file that the user GUI cannot read.
@@ -258,7 +262,7 @@ class CliInteraction:
             # Determine dimension bounds in terminal characters/cells (rows).
             # Columns are automatically calculated based on the photo's aspect ratio.
             # If terminal_preview_rows is 0 or not set, it falls back to auto-fitting current terminal size.
-            custom_rows = self._settings.get_terminal_preview_rows()
+            custom_rows = self._settings.terminal_preview_rows
 
             if custom_rows > 0:
                 new_h = custom_rows

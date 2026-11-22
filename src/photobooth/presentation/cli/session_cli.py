@@ -1,26 +1,42 @@
+import os
+
+
 class SessionCli:
     """
     SessionCli orchestrates a photobooth session: it is the CLI "session script"
-    which drives the logic gateway and delegates every user interaction to
+    which drives the logic services and delegates every user interaction to
     CliInteraction.
 
     The same script can be reused (or mirrored) by a future GUI controller:
-    the gateway exposes operations only, so the orchestration is the only
+    the services expose operations only, so the orchestration is the only
     piece which changes between presentation frontends.
     """
 
-    def __init__(self, gateway, interaction):
-        self._gateway = gateway
+    def __init__(self, capture, frames, recovery, archiver, printing, uploads, interaction):
+        self._capture = capture
+        self._frames = frames
+        self._recovery = recovery
+        self._archiver = archiver
+        self._printing = printing
+        self._uploads = uploads
         self._interaction = interaction
 
     def run(self):
         """
-        Method which prepares the application and runs the main execution loop.
+        Method which prepares the application and runs the main execution loop
+        until the operator quits (Ctrl+C).
         """
 
-        self._gateway.prepare()
-        while self._gateway.keep_going():
-            self.main_execution()
+        self._capture.prepare()
+        self._printing.prepare()
+        try:
+            while not self._capture.stop_requested():
+                self.main_execution()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            self._capture.request_stop()
+            self._capture.stop()
 
     def main_execution(self):
         """
@@ -37,19 +53,20 @@ class SessionCli:
 
         frame_name, photo_accepted = self._choose_frame(photo_path)
         if not photo_accepted:
-            self._gateway.abort_session(photo_path)
+            self._archiver.archive_current(photo_path)
             return
 
-        # ----   send to the server  ----
-        self._gateway.send_to_backend(photo_path, frame_name)
-        # -------------------------------
+        # ----   send to the server (non blocking)  ----
+        self._uploads.send_photo(self._frames.compose(photo_path, frame_name), os.path.basename(photo_path))
+        # ------------------------------------------------
 
         times = self._interaction.choose_times_to_print()
         # the photo is added to the queue and the folder gets cleared
-        self._gateway.enqueue(photo_path, frame_name, times)
+        queued_photo_path = self._archiver.archive_current(photo_path)
+        self._printing.enqueue(queued_photo_path, self._frames.frame_path(frame_name), times)
 
-        while self._gateway.prints_pending():  # if there are 2 or more photos in queue then start to edit
-            self._interaction.show_print_result(self._gateway.print_next())
+        while self._printing.prints_pending():  # if there are 2 or more photos in queue then start to edit
+            self._interaction.show_print_result(self._printing.print_next())
 
     def _recover_or_capture(self) -> str:
         """
@@ -58,11 +75,11 @@ class SessionCli:
         :return: path of the photo to use for the session (empty string to skip the session)
         """
 
-        pending = self._gateway.pending_photos()
+        pending = self._recovery.pending_photos()
         if pending:
             if self._interaction.ask_resume_session():
                 return self._interaction.choose_pending_photo(pending)
-            self._gateway.discard_pending_session()
+            self._recovery.discard_pending()
 
         return self._capture_photo_with_preview()
 
@@ -74,12 +91,12 @@ class SessionCli:
         """
 
         while True:
-            if self._gateway.capture_hint() == 'shutter':
+            if self._capture.hint() == 'shutter':
                 self._interaction.wait_for_camera_shutter()
             else:
                 self._interaction.press_to_shoot()
 
-            photo_path = self._gateway.capture_photo()
+            photo_path = self._capture.capture()
             if not photo_path:
                 return ''
 
@@ -87,13 +104,13 @@ class SessionCli:
 
             # up to now to make the pipeline faster, the user will not confirm the shoot here but only after the polaroid edit
             # in the future, granularity will be added
-            if not self._gateway.should_preview_capture() or self._interaction.confirm_shot(photo_path):
+            if not self._capture.should_preview() or self._interaction.confirm_shot(photo_path):
                 # the photo is accepted, we can go on
                 # session has ended
-                self._gateway.accept_capture(photo_path)
+                self._capture.accept()
                 return photo_path
             else:
-                self._gateway.reject_capture(photo_path)
+                self._capture.reject(photo_path)
                 self._interaction.notify_photo_rejected()
 
     def _choose_frame(self, photo_path: str):
@@ -105,12 +122,12 @@ class SessionCli:
         :return: tuple (frame name, accepted)
         """
 
-        if self._gateway.frame_strategy() == 'manual':
+        if self._frames.strategy() == 'manual':
             return self._choose_frame_manually(photo_path)
 
-        frame_name = self._gateway.next_frame()
-        if not self._gateway.should_preview_frame() or self._interaction.show_preview_image(
-                self._gateway.preview(photo_path, frame_name)):
+        frame_name = self._frames.next_frame_name()
+        if not self._frames.should_preview() or self._interaction.show_preview_image(
+                self._frames.compose(photo_path, frame_name)):
             return frame_name, True
         return '', False
 
@@ -125,7 +142,7 @@ class SessionCli:
         # in this case the photo was already accepted in the runner method, so only the edit will be chosen
         # in other words: here the logic to change the photo is not implemented
         while True:
-            frame_name = self._interaction.choose_polaroid_effect(self._gateway.available_frames())
-            if not self._gateway.should_preview_frame() or self._interaction.show_preview_image(
-                    self._gateway.preview(photo_path, frame_name)):
+            frame_name = self._interaction.choose_polaroid_effect(self._frames.available_frames())
+            if not self._frames.should_preview() or self._interaction.show_preview_image(
+                    self._frames.compose(photo_path, frame_name)):
                 return frame_name, True

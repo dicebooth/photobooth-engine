@@ -3,6 +3,7 @@ import os
 from PIL import Image, ImageChops
 
 from photobooth.logic.editing.editor_service import EditorService
+from photobooth.logic.frames.frame_compositor import FrameCompositor
 
 ASSETS_DIR = os.path.join(os.path.dirname(__file__), 'assets')
 
@@ -18,8 +19,7 @@ def test_photo_edit():
     frame_path = os.path.join(ASSETS_DIR, 'frame.png')
     test_path = os.path.join(ASSETS_DIR, 'test.png')
 
-    editor = EditorService()
-    edited = editor.prepare_single_photo(photo_path, frame_path)
+    edited = FrameCompositor().compose(photo_path, frame_path)
 
     expected = Image.open(test_path)
 
@@ -33,7 +33,7 @@ def test_edits_to_print(tmp_path):
 
     tmp_path = str(tmp_path)
 
-    editor = EditorService()
+    editor = EditorService(FrameCompositor())
     output_path = editor.edit([photo_path, photo_path], [frame_path, frame_path], tmp_path)
 
     output_image = Image.open(output_path)
