@@ -1,5 +1,4 @@
 import os
-import shutil
 
 from photobooth.logic.session import disaster_recovery
 
@@ -14,10 +13,12 @@ class Gateway:
     user interactions.
     """
 
-    def __init__(self, settings, folders, assets, camera, editor, queue, naming, frame_chooser, printer, backend):
+    def __init__(self, settings, folders, archiver, catalog, camera, editor, queue, naming, frame_chooser, printer,
+                 backend):
         self._settings = settings
         self._folders = folders
-        self._assets = assets
+        self._archiver = archiver
+        self._catalog = catalog
         self._camera = camera
         self._editor = editor
         self._queue = queue
@@ -63,7 +64,7 @@ class Gateway:
         moving them from the current folder to the originals folder.
         """
 
-        self._folders.clean_current_path('')
+        self._archiver.archive_current()
 
     # ------------------------------------------------------------------- capture
 
@@ -118,8 +119,7 @@ class Gateway:
         :param photo_path: rejected photo path
         """
 
-        file_name = os.path.basename(photo_path)
-        shutil.move(photo_path, os.path.join(self._folders.get_originals_path(), file_name))
+        self._archiver.archive_photo(photo_path)
 
     # --------------------------------------------------------------------- frame
 
@@ -162,7 +162,7 @@ class Gateway:
         :return: edited photo (PIL image)
         """
 
-        effect_path = self._assets.get_frame_path(frame_name)
+        effect_path = self._catalog.path_of(frame_name)
         return self._editor.prepare_single_photo(photo_path, effect_path)
 
     def abort_session(self, photo_path: str):
@@ -172,7 +172,7 @@ class Gateway:
         :param photo_path: photo path of the aborted session
         """
 
-        self._folders.clean_current_path(photo_path)
+        self._archiver.archive_current(photo_path)
 
     # ------------------------------------------------------------------- backend
 
@@ -183,7 +183,7 @@ class Gateway:
         :param frame_name: frame name
         """
 
-        effect_path = self._assets.get_frame_path(frame_name)
+        effect_path = self._catalog.path_of(frame_name)
         edited_photo = self._editor.prepare_single_photo(photo_path, effect_path)
         self._backend.send_photo(edited_photo, os.path.basename(photo_path))
 
@@ -198,8 +198,8 @@ class Gateway:
         :param copies: number of copies to print
         """
 
-        effect_path = self._assets.get_frame_path(frame_name)
-        new_photo_path = self._folders.clean_current_path(photo_path)
+        effect_path = self._catalog.path_of(frame_name)
+        new_photo_path = self._archiver.archive_current(photo_path)
         self._queue.add_photo(new_photo_path, copies)
         self._queue.add_edit(effect_path, copies)
 

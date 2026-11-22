@@ -1,3 +1,6 @@
+from photobooth.logic.frames.frame_catalog import FrameCatalog
+
+
 class FrameChooserService:
     """
     FrameChooserService decides which frame (effect) to apply to a photo.
@@ -11,11 +14,11 @@ class FrameChooserService:
     # frame is available in the assets folder.
     DEFAULT_STRATEGY = 'random'
 
-    def __init__(self, assets, configured_frame: str = '', fallback_strategy: str = None):
-        self._assets = assets
+    def __init__(self, catalog: FrameCatalog, configured_frame: str = '', fallback_strategy: str = None):
+        self._catalog = catalog
         self._configured_frame = configured_frame
-        self._frame_list = assets.get_corners_names()
-        self._single_frame = assets.is_frame_single()
+        self._frame_list = catalog.names()
+        self._single_frame = catalog.is_single()
         self._fallback_strategy = fallback_strategy or self.DEFAULT_STRATEGY
         self._random_frame_index = 0
 
