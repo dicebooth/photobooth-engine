@@ -1,10 +1,13 @@
+import logging
 import os
 
 from photobooth import consts
 from photobooth.api.backend.backend import PhotoAPIClient
-from photobooth.api.camera.camera_api import build_camera
+from photobooth.api.camera.camera_factory import build_camera
 from photobooth.api.printing.cups_printer import CupsPrinter
 from photobooth.api.printing.hotfolder_printer import HotfolderPrinter
+from photobooth.logic.capture.capture_service import CaptureService
+from photobooth.logic.capture.photo_id_sequencer import PhotoIdSequencer
 from photobooth.logic.editing.editor_service import EditorService
 from photobooth.logic.frames.frame_catalog import FrameCatalog
 from photobooth.logic.frames.frame_chooser_service import FrameChooserService
@@ -36,6 +39,20 @@ def resolve_home() -> str:
     return os.environ.get(consts.PHOTOBOOTH_HOME_ENV) or os.getcwd()
 
 
+def setup_console_logging() -> None:
+    """
+    Method which shows on the terminal the messages of the drivers and services
+    (camera waiting, retries, ...). The upload logger has its own file and does not propagate.
+    """
+
+    logger = logging.getLogger('photobooth')
+    logger.setLevel(logging.INFO)
+    if not logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter('%(message)s'))
+        logger.addHandler(handler)
+
+
 def build_gateway(home: str, settings: Settings) -> Gateway:
     """
     Method which wires all the components (composition root) and returns the
@@ -51,16 +68,18 @@ def build_gateway(home: str, settings: Settings) -> Gateway:
     archiver = OriginalsArchiver(folders)
     catalog = FrameCatalog(os.path.join(home, consts.ASSETS_DIRNAME))
 
+    capture_settings = settings.capture
     camera = build_camera(
-        camera_name=settings.get_cam_name(),
-        connection=settings.get_camera_connection(),
-        hotfolder_path=settings.get_camera_hotfolder_path(),
-        state_store=state_store,
+        camera_name=capture_settings.cam_name,
+        connection=capture_settings.camera_connection,
+        hotfolder_path=capture_settings.camera_hotfolder_path,
+        sequencer=PhotoIdSequencer(state_store),
     )
 
     editor = EditorService()
     queue = QueueService(state_store)
     naming = NamingService(state_store, settings.get_event_name(), folders)
+    capture = CaptureService(camera, folders, archiver, naming, capture_settings)
     frame_chooser = FrameChooserService(catalog, settings.get_frame_name())
 
     print_settings = settings.printing
@@ -78,7 +97,7 @@ def build_gateway(home: str, settings: Settings) -> Gateway:
         PhotoEncoder(),
     )
 
-    return Gateway(settings, folders, archiver, catalog, camera, editor, printing, naming, frame_chooser, backend)
+    return Gateway(settings, folders, archiver, catalog, capture, editor, printing, frame_chooser, backend)
 
 
 def main():
@@ -87,6 +106,7 @@ def main():
     It wires all the components (composition root) and starts the CLI session loop.
     """
 
+    setup_console_logging()
     home = resolve_home()
     setup_logging(os.path.join(home, consts.UPLOAD_LOG_FILENAME))
 

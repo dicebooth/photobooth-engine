@@ -1,17 +1,18 @@
 import pytest
 
-from photobooth.api.camera.camera_abc import CameraABC
-from photobooth.api.camera.camera_api import build_camera
+from photobooth.api.camera.camera_factory import build_camera
 from photobooth.api.camera.gphoto2_camera import GPhoto2Camera
 from photobooth.api.camera.hotfolder_camera import HotfolderCamera
 from photobooth.db.state_store import StateStore
+from photobooth.logic.capture.photo_id_sequencer import PhotoIdSequencer
+from photobooth.logic.capture.ports import CameraPort
 
 
 def test_build_camera_usb_returns_gphoto2_driver(tmp_path):
     camera = build_camera(camera_name='test', connection='usb')
 
     assert isinstance(camera, GPhoto2Camera)
-    assert isinstance(camera, CameraABC)
+    assert isinstance(camera, CameraPort)
 
 
 def test_build_camera_wifi_returns_hotfolder_driver(tmp_path):
@@ -20,21 +21,21 @@ def test_build_camera_wifi_returns_hotfolder_driver(tmp_path):
 
     camera = build_camera(
         camera_name='test', connection='wifi',
-        hotfolder_path=hotfolder, state_store=state_store,
+        hotfolder_path=hotfolder, sequencer=PhotoIdSequencer(state_store),
     )
 
     assert isinstance(camera, HotfolderCamera)
-    assert isinstance(camera, CameraABC)
+    assert isinstance(camera, CameraPort)
 
 
 def test_build_camera_wifi_without_hotfolder_raises():
     with pytest.raises(ValueError, match='camera_hotfolder_path'):
-        build_camera(camera_name='test', connection='wifi', state_store=None)
+        build_camera(camera_name='test', connection='wifi', sequencer=None)
 
 
-def test_build_camera_wifi_without_state_store_raises(tmp_path):
-    with pytest.raises(ValueError, match='state store'):
+def test_build_camera_wifi_without_sequencer_raises(tmp_path):
+    with pytest.raises(ValueError, match='sequencer'):
         build_camera(
             camera_name='test', connection='wifi',
-            hotfolder_path=str(tmp_path / 'hotfolder'), state_store=None,
+            hotfolder_path=str(tmp_path / 'hotfolder'), sequencer=None,
         )

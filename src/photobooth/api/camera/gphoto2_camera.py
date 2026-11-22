@@ -1,50 +1,53 @@
 import os
-import time
+import subprocess
 
 from photobooth import consts
-from photobooth.api.camera.camera_abc import CameraABC
-from photobooth.api.platform_api import camera_is_connected
+from photobooth.logic.capture.ports import CameraError, CameraNotFound
 
 
-class GPhoto2Camera(CameraABC):
+class GPhoto2Camera:
     """
-    GPhoto2Camera is the USB camera driver based on the gphoto2 library.
+    GPhoto2Camera is the USB camera driver based on the gphoto2 library
+    (it implements CameraPort).
 
     This driver is the only place where gphoto2 is used: swapping the camera
-    library means writing a new driver which implements CameraABC, without
-    touching the rest of the application.
+    library means writing a new driver, without touching the rest of the
+    application. Every call makes ONE attempt and raises CameraError on failure:
+    retrying is a policy of CaptureService.
     """
 
     def __init__(self, camera_name: str):
         self._camera_name = camera_name
         self._camera = None
 
-    def _reinitialize(self):
-        print('something went wrong, re-initializing camera')
-        self.init()
+    def is_connected(self) -> bool:
+        """
+        Method which verifies if the camera set in the settings.yaml file is connected to the PC.
+        :return: True if the camera is listed by gphoto2 --auto-detect
+        """
+
+        output = subprocess.run(['gphoto2', '--auto-detect'], capture_output=True, text=True)
+        return any(self._camera_name in line for line in output.stdout.split('\n'))
 
     def init(self):
         """
         Method which initializes the camera.
-        If something goes wrong, it retries by recursion until the camera is connected.
+        :raises CameraNotFound: if the camera is not connected
+        :raises CameraError: if gphoto2 fails to initialize it
         """
 
         from gphoto2 import GPhoto2Error
+        import gphoto2 as gp
 
-        while not camera_is_connected(self._camera_name):
-            print('camera not found. check if it\'s connected and try again')
-            time.sleep(consts.CAMERA_RETRY_DELAY_SEC)
-
-        print('camera found')
+        if not self.is_connected():
+            raise CameraNotFound(f"camera '{self._camera_name}' not found")
 
         try:
-            import gphoto2 as gp
             _, camera = gp.gp_camera_new()
+            camera.init()
             self._camera = camera
-            self._camera.init()
         except GPhoto2Error as e:
-            print(e)
-            self.init()
+            raise CameraError(str(e)) from e
 
     def stop(self):
         if self._camera is not None:
@@ -53,10 +56,10 @@ class GPhoto2Camera(CameraABC):
     def capture_via_camera(self, path: str, photo_name: str) -> str:
         """
         Method which waits for a photo to be taken from the camera and saves it in the given path with the given name.
-        If something goes wrong, the camera is re-initialized and the shot is tried again by recursion.
         :param path: the path where the photo has to be saved
         :param photo_name: the name of the photo to be saved
         :return: shot photo path
+        :raises CameraError: if gphoto2 fails
         """
 
         from gphoto2 import GPhoto2Error
@@ -71,28 +74,17 @@ class GPhoto2Camera(CameraABC):
 
                 if event_type == gp.GP_EVENT_FILE_ADDED:
                     # a new file is added in the camera
-                    folder, file_name = event_data.folder, event_data.name
-                    print(f"New photo detected: {file_name} in the folder {folder}")
-
-                    # get the file
-                    target = os.path.join(path, photo_name)
-                    camera_file = self._camera.file_get(folder, file_name, gp.GP_FILE_TYPE_NORMAL)
-                    camera_file.save(target)
-                    os.chmod(target, 0o777)
-
-                    return target
+                    return self._save_camera_file(event_data.folder, event_data.name, path, photo_name)
         except GPhoto2Error as e:
-            print(e)
-            self._reinitialize()
-            return self.capture_via_camera(path, photo_name)
+            raise CameraError(str(e)) from e
 
     def capture_via_pc(self, path: str, photo_name: str) -> str:
         """
         Method which allows taking a photo from the connected camera and saving it in the given path with the given name.
-        If something goes wrong, the camera is re-initialized and the shot is tried again by recursion.
         :param path: the path where the photo has to be saved
         :param photo_name: the name of the photo to be saved
         :return: shot photo path
+        :raises CameraError: if gphoto2 fails
         """
 
         from gphoto2 import GPhoto2Error
@@ -100,15 +92,15 @@ class GPhoto2Camera(CameraABC):
 
         try:
             file_path = self._camera.capture(gp.GP_CAPTURE_IMAGE)
-            target = os.path.join(path, photo_name)
-
-            camera_file = self._camera.file_get(
-                file_path.folder, file_path.name, gp.GP_FILE_TYPE_NORMAL)
-            camera_file.save(target)
-            os.chmod(target, 0o777)
-
-            return target
+            return self._save_camera_file(file_path.folder, file_path.name, path, photo_name)
         except GPhoto2Error as e:
-            print(e)
-            self._reinitialize()
-            return self.capture_via_pc(path, photo_name)
+            raise CameraError(str(e)) from e
+
+    def _save_camera_file(self, folder: str, file_name: str, path: str, photo_name: str) -> str:
+        import gphoto2 as gp
+
+        target = os.path.join(path, photo_name)
+        camera_file = self._camera.file_get(folder, file_name, gp.GP_FILE_TYPE_NORMAL)
+        camera_file.save(target)
+        os.chmod(target, 0o777)
+        return target

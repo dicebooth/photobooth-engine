@@ -14,16 +14,14 @@ class Gateway:
     user interactions.
     """
 
-    def __init__(self, settings, folders, archiver, catalog, camera, editor, printing, naming, frame_chooser,
-                 backend):
+    def __init__(self, settings, folders, archiver, catalog, capture, editor, printing, frame_chooser, backend):
         self._settings = settings
         self._folders = folders
         self._archiver = archiver
         self._catalog = catalog
-        self._camera = camera
+        self._capture = capture
         self._editor = editor
         self._printing = printing
-        self._naming = naming
         self._frame_chooser = frame_chooser
         self._backend = backend
         self._continue = True
@@ -35,7 +33,7 @@ class Gateway:
         Method which prepares camera, queue and printer.
         """
 
-        self._camera.init()
+        self._capture.prepare()
         self._printing.prepare()
 
     def keep_going(self) -> bool:
@@ -43,7 +41,7 @@ class Gateway:
         return self._continue
 
     def final_cleaning(self):
-        self._camera.stop()
+        self._capture.stop()
         self._printing.dismiss()
 
     # ------------------------------------------------------------------ recovery
@@ -81,9 +79,7 @@ class Gateway:
         'press' if the user has to press a key on the keyboard.
         """
 
-        if self._settings.get_capture_mode() == 'camera' or self._settings.get_camera_connection() == 'wifi':
-            return 'shutter'
-        return 'press'
+        return self._capture.hint()
 
     def should_preview_capture(self) -> bool:
         """
@@ -91,7 +87,7 @@ class Gateway:
         before going on.
         """
 
-        return self._settings.get_preview_pre_frame()
+        return self._capture.should_preview()
 
     def capture_photo(self) -> str:
         """
@@ -100,17 +96,14 @@ class Gateway:
         :return: shot photo path
         """
 
-        file_name = self._naming.get_photo_name()
-        if self._settings.get_capture_mode() == 'camera':
-            return self._camera.capture_via_camera(self._folders.get_current_path(), file_name)
-        return self._camera.capture_via_pc(self._folders.get_current_path(), file_name)
+        return self._capture.capture()
 
     def accept_capture(self, photo_path: str):
         """
         Method which marks the shot photo as accepted and moves the session on.
         """
 
-        self._naming.increment_session_number()
+        self._capture.accept()
 
     def reject_capture(self, photo_path: str):
         """
@@ -118,7 +111,7 @@ class Gateway:
         :param photo_path: rejected photo path
         """
 
-        self._archiver.archive_photo(photo_path)
+        self._capture.reject(photo_path)
 
     # --------------------------------------------------------------------- frame
 
