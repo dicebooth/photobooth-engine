@@ -3,6 +3,9 @@ import os
 import yaml
 
 from photobooth import consts
+from photobooth.logic.settings.settings_models import (
+    CaptureSettings, FrameSettings, InteractionSettings, PrintSettings, StorageSettings, UploadSettings,
+)
 
 
 class Settings:
@@ -126,3 +129,57 @@ class Settings:
 
     def get_warn_num_photos(self) -> int:
         return self._data.get('warn_num_photos', consts.DEFAULT_WARN_NUM_PHOTOS)
+
+    # ------------------------------------------------------- per-theme slices
+
+    @property
+    def storage(self) -> StorageSettings:
+        return StorageSettings(
+            main_folder_path=self._data['main_folder_path'],
+            event_name=self._data['event_name'],
+        )
+
+    @property
+    def capture(self) -> CaptureSettings:
+        return CaptureSettings(
+            cam_name=self._data['cam_name'],
+            capture_mode=self.get_capture_mode(),
+            camera_connection=self.get_camera_connection(),
+            camera_hotfolder_path=self.get_camera_hotfolder_path(),
+            preview_pre_frame=self.get_preview_pre_frame(),
+            retry_delay_sec=self._data.get('camera_retry_delay_sec', consts.CAMERA_RETRY_DELAY_SEC),
+        )
+
+    @property
+    def frames(self) -> FrameSettings:
+        return FrameSettings(
+            frame_name=self.get_frame_name(),
+            preview_post_frame=self.get_preview_post_frame(),
+        )
+
+    @property
+    def printing(self) -> PrintSettings:
+        return PrintSettings(
+            printer_name=self._data['printer_name'],
+            printer_options=self.get_printer_options(),
+            print_size=self.get_print_size(),
+            enable_hotfolder=self.get_enable_hotfolder(),
+            printer_hotfolder_path=self.get_printer_hotfolder_path(),
+        )
+
+    @property
+    def uploads(self) -> UploadSettings:
+        return UploadSettings(
+            backend_url=self._data['backend'],
+            client_secret=self.get_client_secret(),
+        )
+
+    @property
+    def interaction(self) -> InteractionSettings:
+        return InteractionSettings(
+            terminal_preview=self.get_terminal_preview(),
+            terminal_preview_rows=self.get_terminal_preview_rows(),
+            min_num_photos=self.get_min_num_photos(),
+            max_num_photos=self.get_max_num_photos(),
+            warn_num_photos=self.get_warn_num_photos(),
+        )

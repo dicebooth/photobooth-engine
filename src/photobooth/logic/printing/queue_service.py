@@ -1,3 +1,6 @@
+from photobooth.logic.printing.ports import QueueStatePort
+
+
 class QueueService:
     """
     QueueService manages the photo and edit queues (logic only, persistence
@@ -6,7 +9,7 @@ class QueueService:
     photo queue is ready, and get photos and edits from the queues.
     """
 
-    def __init__(self, state_store):
+    def __init__(self, state_store: QueueStatePort):
         self._state_store = state_store
         self._dict = {'photos': [], 'edits': []}
         self._ensure_file_exists()

@@ -1,5 +1,7 @@
 import os
 
+from photobooth.logic.editing.ports import NamingStatePort
+
 
 class NamingService:
     """
@@ -7,7 +9,7 @@ class NamingService:
     and the session counter, persisted through the injected StateStore.
     """
 
-    def __init__(self, state_store, event_name: str, folders):
+    def __init__(self, state_store: NamingStatePort, event_name: str, folders):
         self._state_store = state_store
         self._event_name = event_name
         self._folders = folders
