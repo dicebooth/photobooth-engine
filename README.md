@@ -190,8 +190,8 @@ src/
 └── photobooth/
     ├── main.py               # Composition root + entry point
     ├── consts.py             # Shared constants
-    ├── api/                  # Adapters: camera (gphoto2/wifi), printer, backend, storage, platform
-    ├── logic/                 # Application logic: gateway, editor, queue, naming, frames, recovery
+    ├── api/                  # Adapters (I/O only): camera drivers, print transports, backend client, platform
+    ├── logic/                # Application logic by theme: capture, frames, editing, printing, uploads, session, settings
     ├── db/                   # Infrastructure: state persistence (temp_data.yaml)
     └── presentation/         # CLI (interaction + session) and future GUI
 tests/                        # pytest suite
@@ -204,6 +204,8 @@ settings.yaml                 # Active runtime configuration file (git-ignored)
 ### Architecture in one sentence
 
 `presentation → logic → api/db`: the CLI (or a future GUI) orchestrates a session
-by calling only the `logic.gateway.Gateway`, which never interacts with the user;
-adapters in `api/` talk to cameras, printers, backend and filesystem, while
-`db/state_store.py` is the single persistence point.
+by calling the focused services of `logic/` (capture, frames, printing, uploads,
+recovery), which never interact with the user; `logic/` declares the ports it
+needs and the adapters in `api/` (cameras, printers, backend) implement them with
+one call to the outside world per method, while `db/state_store.py` is the
+single persistence point.

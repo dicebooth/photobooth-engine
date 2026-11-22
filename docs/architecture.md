@@ -4,82 +4,120 @@
 
 ```
 src/photobooth/
-├── api/                            # Adapters to the outside world
-│   ├── local_storage_api.py        # FolderManager (user_data tree), AssetManager (frames)
-│   ├── printer_api.py              # Printer (lp/CUPS or DNP hotfolder)
-│   ├── platform_api.py             # Platform, detect_os, camera_is_connected
-│   ├── backend/                    # Backend HTTP integration
-│   │   ├── backend.py              # PhotoAPIClient (login, upload, download)
-│   │   ├── backend_api.py          # BackendService (fire-and-forget upload)
+├── api/                            # Adapters to the outside world: ONE call to the outside per method
+│   ├── platform_api.py             # Platform, detect_os
+│   ├── backend/
+│   │   └── backend.py              # PhotoAPIClient (login, upload of an encoded photo, download)
+│   ├── camera/                     # Camera drivers (one attempt per call, raise CameraError)
+│   │   ├── camera_factory.py       # build_camera(): driver selection factory
+│   │   ├── gphoto2_camera.py       # USB driver (gphoto2)
+│   │   └── hotfolder_camera.py     # WiFi driver (hotfolder polling and copy)
+│   └── printing/                   # Print transports (raise PrinterError)
+│       ├── cups_printer.py         # CupsPrinter (lp / lpoptions)
+│       └── hotfolder_printer.py    # HotfolderPrinter (DNP hotfolder copy)
+├── logic/                          # Everything that decides or transforms, one package per theme
+│   ├── capture/
+│   │   ├── ports.py                # CameraPort, PhotoIdStatePort, CameraError
+│   │   ├── capture_service.py      # CaptureService: hints, shots, infinite re-init/retry loop
+│   │   └── photo_id_sequencer.py   # PhotoIdSequencer: which hotfolder photo is the next one
+│   ├── frames/
+│   │   ├── frame_catalog.py        # FrameCatalog: frames available in Assets/
+│   │   ├── frame_compositor.py     # FrameCompositor: photo inside a frame
+│   │   └── frame_service.py        # FrameService: strategy, next frame, preview
+│   ├── editing/
+│   │   ├── ports.py                # NamingStatePort
+│   │   ├── editor_service.py       # EditorService: two framed photos -> one 4x6 sheet
+│   │   ├── photo_encoder.py        # PhotoEncoder: image mode normalization + PNG base64
+│   │   └── naming_service.py       # NamingService: photo naming + session counter
+│   ├── printing/
+│   │   ├── ports.py                # PrinterPort, QueueStatePort, PrinterError
+│   │   ├── print_options_resolver.py  # PrintOptionsResolver: which lp options to use
+│   │   ├── print_service.py        # PrintService: queue + print, returns PrintResult
+│   │   └── queue_service.py        # QueueService: photo/edit print queues
+│   ├── uploads/
+│   │   ├── ports.py                # BackendPort, BackendUnavailable
+│   │   ├── upload_service.py       # UploadService: background upload, infinite retry
 │   │   └── logger.py               # setup_logging(log_file)
-│   └── camera/                     # Camera adapters (gphoto2-agnostic)
-│       ├── camera_api.py           # build_camera(): driver selection factory (entry point)
-│       ├── camera_abc.py           # CameraABC abstract interface
-│       ├── gphoto2_camera.py       # USB driver (gphoto2)
-│       └── hotfolder_camera.py     # WiFi driver (hotfolder polling)
-├── logic/                           # Application logic
-│   ├── gateway.py                  # Gateway: the only logic entry point for presentation
-│   ├── settings.py                 # Settings (settings.yaml)
-│   ├── editor_service.py           # EditorService (frame application, composition, padding)
-│   ├── frame_chooser_service.py    # Frame strategy (configured/single/random/manual)
-│   ├── queue_service.py            # Photo/edit print queues logic
-│   ├── naming_service.py           # Photo naming + session counter
-│   └── disaster_recovery.py        # Pending session detection
+│   ├── session/
+│   │   ├── folder_manager.py       # FolderManager: user_data/{current,originals,output}
+│   │   ├── originals_archiver.py   # OriginalsArchiver: current -> originals
+│   │   └── recovery_service.py     # RecoveryService: disaster recovery
+│   └── settings/
+│       ├── settings.py             # Settings: reads settings.yaml once
+│       └── settings_models.py      # Storage/Capture/Frame/Print/Upload/InteractionSettings
 ├── db/                             # Infrastructure / persistence
 │   └── state_store.py              # StateStore (temp_data.yaml: queues, session, wifi id)
 ├── presentation/                   # User-facing layer
 │   ├── cli/                        # Command line interface
 │   │   ├── interaction_cli.py      # CliInteraction: prompts and previews only
-│   │   └── session_cli.py          # SessionCli: session orchestration via the gateway
+│   │   └── session_cli.py          # SessionCli: session orchestration via the services
 │   └── gui/                        # Placeholder for the future GUI
 ├── main.py                         # Composition root: wiring + CLI entry point
 └── consts.py                       # Shared constants (paths, defaults, sizes)
-
-
-
 ```
 
 ## Dependency rule
 
-Dependencies only point downwards:
-
 ```
-presentation  →  logic  →  api / db
+presentation  →  logic  ←  api
+                   ↑
+                  db
 ```
 
-- **Presentation never bypasses the gateway.** `SessionCli` (or the future GUI
-  controller) orchestrates a session by calling only `Gateway` methods, and
-  delegates every prompt/preview to its interaction implementation
-  (`CliInteraction`).
-- **The logic layer never talks to the user.** It has no `input()`, no previews, no
-  knowledge of the CLI: every choice is a parameter, every output is a value.
-- **The api layer never imports the logic layer.** Adapters receive plain values
-  (names, paths, options, booleans) from `main.py`; the only shared modules are
-  `consts.py` and the persistence interfaces they are handed (for example the
-  WiFi camera receives the `StateStore` instance to persist `last_read_wifi_id`).
+- **`logic` imports nothing from `api`, `db` or `presentation`.** It declares
+  what it needs from the outside as `typing.Protocol` ports (`ports.py` inside
+  the theme that uses it: `CameraPort`, `PrinterPort`, `BackendPort`,
+  `QueueStatePort`, ...). `api` and `db` implement them structurally.
+- **`api` only does I/O.** Each method makes one call to the outside world
+  (one HTTP request, one `lp`, one gphoto2 shot, one hotfolder read) and takes
+  or returns primitives. It has no retry policy, no image conversion, no
+  domain message: it raises the typed errors defined in the ports
+  (`CameraError`, `PrinterError`, `BackendUnavailable`). It imports `logic` only
+  for those ports and exceptions (and `PhotoIdSequencer`, handed to the WiFi
+  driver).
+- **`presentation` never imports `api` or `db`.** `main.py` hands it what it
+  needs (for example the `Platform` detected by `detect_os()`).
+- **The logic layer never talks to the user.** No `input()`, no `print()`, no
+  previews: every choice is a parameter, every output is a value
+  (`PrintResult`) or a log message.
+- **`SessionCli` orchestrates the services directly**: there is no facade.
+  Each service has a single theme and few collaborators.
 - **db is infrastructure.** `StateStore` is the single persistence point of
   `temp_data.yaml`; services receive it, they never open state files directly.
+
+## Policies worth knowing
+
+- **Camera:** drivers make one attempt. `CaptureService` keeps re-initializing
+  and retrying forever (pause: `camera_retry_delay_sec`, default 2s) until it
+  succeeds or `request_stop()` is called; `SessionCli.run()` does it on Ctrl+C.
+- **Upload:** `UploadService` encodes the photo once and uploads it from a
+  daemon thread, retrying forever every 5 seconds while the backend is
+  unreachable (`BackendUnavailable`). Any other error is logged and final.
+- **Print options** (`PrintOptionsResolver`): QW410 + `4x3` → `media=dnp4x6
+  Cutter=2Inch`; otherwise the `printer_options` of `settings.yaml`; otherwise
+  the first fit-to-page option reported by the printer.
+- **Print queue:** it survives restarts on purpose (loaded in `prepare()`).
 
 ## Session flow (CLI)
 
 ```
-main.py (wiring)
+main.py (wiring: build_services + build_session)
   └── SessionCli.run()
-        gateway.prepare()
-        loop:
+        capture.prepare() / printing.prepare()
+        loop (until Ctrl+C):
           SessionCli.main_execution()
-            ├─ Gateway.pending_photos() / discard_pending_session()   # disaster recovery
+            ├─ RecoveryService.pending_photos() / discard_pending()      # disaster recovery
             ├─ CliInteraction.ask_resume_session() / choose_pending_photo()
-            ├─ Gateway.capture_hint()  →  CliInteraction hint
-            ├─ Gateway.capture_photo()
-            ├─ CliInteraction.confirm_shot()  →  Gateway.accept_capture() / reject_capture()
+            ├─ CaptureService.hint()  →  CliInteraction hint
+            ├─ CaptureService.capture()
+            ├─ CliInteraction.confirm_shot()  →  CaptureService.accept() / reject()
             │     (on reject: CliInteraction.notify_photo_rejected())
-            ├─ Gateway.frame_strategy() / next_frame() / preview()
-            ├─ CliInteraction.show_preview_image()  →  Gateway.abort_session()
-            ├─ Gateway.send_to_backend()  (non blocking)
+            ├─ FrameService.strategy() / next_frame_name() / compose()
+            ├─ CliInteraction.show_preview_image()  →  OriginalsArchiver.archive_current() on refusal
+            ├─ UploadService.send_photo()  (non blocking)
             ├─ CliInteraction.choose_times_to_print()
-            ├─ Gateway.enqueue()
-            └─ while Gateway.prints_pending(): Gateway.print_next()
+            ├─ OriginalsArchiver.archive_current()  →  PrintService.enqueue()
+            └─ while PrintService.prints_pending(): CliInteraction.show_print_result(print_next())
 ```
 
 ## Configuration and paths
@@ -88,77 +126,51 @@ main.py (wiring)
   is resolved by `main.py` and points at the folder containing `settings.yaml`,
   `Assets/`, `temp_data.yaml` and the log file.
 - Every component receives its paths from the composition root: `Settings(path)`,
-  `StateStore(path)`, `AssetManager(assets_path)`,
-  `setup_logging(log_file)`. Tests inject a temporary home and clean it up.
+  `StateStore(path)`, `FrameCatalog(frames_path)`, `setup_logging(log_file)`.
+  Tests inject a temporary home and clean it up.
+- `Settings` is read once and exposed as typed slices (`settings.capture`,
+  `settings.printing`, ...): each service receives only the slice it needs.
 - Launch from the project root (as before): `uv run photobooth` or
   `uv run python -m photobooth.main`.
 
-## Documented exceptions
-
-- `presentation/cli/interaction_cli.py` imports `detect_os` from
-  `photobooth.api.platform_api`: this is the **only** allowed exception to the
-  `presentation → logic` rule. Launching the OS image viewer is a presentation
-  concern and it reuses the platform adapter already available in `api/`;
-  injecting it through `main.py` was considered but discarded as overkill for a
-  small, read-only helper.
-
-## Utilities kept for future use
-
-These are intentionally unused for now and are kept (not dead code to delete):
-
-- `logic/disaster_recovery.py::has_pending_session()` — not called yet; it is
-  the boolean counterpart of `pending_photos()`.
-- `FrameChooserService.DEFAULT_STRATEGY = 'random'` — historical behaviour: the
-  `'manual'` strategy is reachable by passing `fallback_strategy='manual'` to
-  the constructor (configuration of the strategy from settings is a possible
-  future improvement).
-
 ## Known technical debt
 
-- `api/backend/backend.py` duplicates the same upload/login flow for the
-  async and sync variants (`upload_pil` / `upload_pil_sync`). This pre-dates
-  the layered refactoring; a future cleanup could keep a single implementation
-  with a thin async wrapper.
-- `api/local_storage_api.py::AssetManager` assumes that the `Assets/` folder
-  exists: a missing folder raises `FileNotFoundError` (from `os.listdir`).
-  A folder without PNG files makes `is_frame_single()` return `False` and
-  `get_corners_names()` return an empty list, so the `'random'` strategy
-  reaches `FrameChooserService.next_frame_name` and raises `IndexError`.
-  (`is_frame_single()` counts only PNG frames, so OS metadata files such as
-  `.DS_Store` are ignored.)
-- `api/camera/gphoto2_camera.py` `capture_via_camera`/`capture_via_pc` call
-  themselves again on `GPhoto2Error` with no limit nor backoff: a persistent
-  error can lead to unbounded recursion.
+- `FrameCatalog` assumes that the `Assets/` folder exists: a missing folder
+  raises `FileNotFoundError` (from `os.listdir`). A folder without PNG files
+  makes `is_single()` return `False` and `names()` return an empty list, so the
+  `'random'` strategy reaches `FrameService.next_frame_name` and raises
+  `IndexError`.
+- `FrameService.DEFAULT_STRATEGY = 'random'`: the `'manual'` strategy is
+  reachable by passing `fallback_strategy='manual'` to the constructor
+  (configuring it from settings is a possible future improvement).
+- `HotfolderCamera` polls and waits for the file transfer in a loop: waiting is
+  I/O, but a bounded wait with a stop flag would be cleaner.
 
 ## Platform notes
 
 - `api/platform_api.py` keeps the small `Platform` class (with `is_linux()`,
   `is_wsl()`, `is_macos()`) instead of exposing raw `sys.platform ==
-  'darwin'`-style checks at the call sites. This is a deliberate decision:
-  the photobooth is a multi-platform system, forcing a single platform
-  constant would be wrong (WSL detection needs `platform.release()` and is
-  not expressible with `sys.platform` alone), and the class masks the string
-  comparisons so callers read as `if os_platform.is_linux()` instead of
-  comparing platform strings inline.
-- `api/printer_api.py::Printer.get_printer_options` handles a missing
-  `lpoptions` binary (e.g. macOS or non-CUPS environments) by catching
-  `FileNotFoundError` and returning an error string, so `Printer.prepare()`
-  degrades gracefully instead of crashing. This fix was developed and verified
-  on Linux only; it could not be tested on macOS.
+  'darwin'`-style checks at the call sites. The photobooth is a multi-platform
+  system and WSL detection needs `platform.release()`, so it is not expressible
+  with `sys.platform` alone. `main.py` injects the detected `Platform` into
+  `CliInteraction`.
+- `CupsPrinter.supported_options` handles a missing `lpoptions` binary (e.g.
+  macOS or non-CUPS environments) by returning an empty listing, so
+  `PrintService.prepare()` degrades gracefully instead of crashing. This was
+  developed and verified on Linux only; it could not be tested on macOS.
 
 ## Conventions
 
-- `*_api.py` — adapters to external systems (in `api/`); inside a package the
-  `*_api.py` module is its entry point (`camera_api.py::build_camera`,
-  `backend_api.py::BackendService`).
+- `*_api.py` — entry points to external systems in `api/` (`platform_api.py`);
+  drivers and transports are named after what they drive (`CupsPrinter`).
 - `*_service.py` — application services (in `logic/`).
+- `ports.py` — the Protocols and typed errors a theme needs from the outside.
 - `interaction_cli.py` — prompt/render implementations;
   `session_cli.py` — the CLI session script.
-- `Gateway` has no suffix: it is the logic facade.
 
 ## Possible future improvements
 
 - A `PHOTOBOOTH_HOME`-aware asset/settings migration to move configuration out
   of CWD entirely (the injection points already support it).
-- An extra `api/` driver for a different camera library (only `camera_abc.py`
-  and `camera_api.py` would change).
+- An extra `api/camera` driver for a different camera library: only a new
+  driver and `camera_factory.py` change.
