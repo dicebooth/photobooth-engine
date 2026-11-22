@@ -1,7 +1,7 @@
 import os
 import shutil
 
-from photobooth.logic import disaster_recovery
+from photobooth.logic.session import disaster_recovery
 
 
 class Gateway:

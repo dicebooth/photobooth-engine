@@ -6,7 +6,7 @@ import yaml
 from PIL import Image, ImageChops
 
 from photobooth import consts
-from photobooth.logic.settings import Settings
+from photobooth.logic.settings.settings import Settings
 from photobooth.main import build_gateway
 from photobooth.presentation.cli.session_cli import SessionCli
 

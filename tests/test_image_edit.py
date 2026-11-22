@@ -2,7 +2,7 @@ import os
 
 from PIL import Image, ImageChops
 
-from photobooth.logic.editor_service import EditorService
+from photobooth.logic.editing.editor_service import EditorService
 
 ASSETS_DIR = os.path.join(os.path.dirname(__file__), 'assets')
 

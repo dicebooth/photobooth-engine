@@ -4,7 +4,7 @@ import re
 
 from tqdm import tqdm
 
-from photobooth.logic.editor_service import EditorService
+from photobooth.logic.editing.editor_service import EditorService
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 

@@ -6,12 +6,12 @@ from photobooth.api.backend.logger import setup_logging
 from photobooth.api.camera.camera_api import build_camera
 from photobooth.api.local_storage_api import AssetManager, FolderManager
 from photobooth.api.printer_api import Printer
-from photobooth.logic.editor_service import EditorService
-from photobooth.logic.frame_chooser_service import FrameChooserService
+from photobooth.logic.editing.editor_service import EditorService
+from photobooth.logic.frames.frame_chooser_service import FrameChooserService
 from photobooth.logic.gateway import Gateway
-from photobooth.logic.naming_service import NamingService
-from photobooth.logic.queue_service import QueueService
-from photobooth.logic.settings import Settings
+from photobooth.logic.editing.naming_service import NamingService
+from photobooth.logic.printing.queue_service import QueueService
+from photobooth.logic.settings.settings import Settings
 from photobooth.db.state_store import StateStore
 from photobooth.presentation.cli.interaction_cli import CliInteraction
 from photobooth.presentation.cli.session_cli import SessionCli
