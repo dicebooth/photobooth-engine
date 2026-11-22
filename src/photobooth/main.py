@@ -4,12 +4,15 @@ from photobooth import consts
 from photobooth.api.backend.backend_api import BackendService
 from photobooth.api.backend.logger import setup_logging
 from photobooth.api.camera.camera_api import build_camera
-from photobooth.api.printer_api import Printer
+from photobooth.api.printing.cups_printer import CupsPrinter
+from photobooth.api.printing.hotfolder_printer import HotfolderPrinter
 from photobooth.logic.editing.editor_service import EditorService
 from photobooth.logic.frames.frame_catalog import FrameCatalog
 from photobooth.logic.frames.frame_chooser_service import FrameChooserService
 from photobooth.logic.gateway import Gateway
 from photobooth.logic.editing.naming_service import NamingService
+from photobooth.logic.printing.print_options_resolver import PrintOptionsResolver
+from photobooth.logic.printing.print_service import PrintService
 from photobooth.logic.printing.queue_service import QueueService
 from photobooth.logic.session.folder_manager import FolderManager
 from photobooth.logic.session.originals_archiver import OriginalsArchiver
@@ -58,20 +61,21 @@ def build_gateway(home: str, settings: Settings) -> Gateway:
     naming = NamingService(state_store, settings.get_event_name(), folders)
     frame_chooser = FrameChooserService(catalog, settings.get_frame_name())
 
-    printer = Printer(
-        settings.get_printer_name(),
-        settings.get_printer_options(),
-        print_size=settings.get_print_size(),
-        enable_hotfolder=settings.get_enable_hotfolder(),
-        hotfolder_path=settings.get_printer_hotfolder_path(),
-    )
+    print_settings = settings.printing
+    if print_settings.enable_hotfolder:
+        printer = HotfolderPrinter(print_settings.printer_hotfolder_path)
+    else:
+        printer = CupsPrinter(print_settings.printer_name)
+    options_resolver = PrintOptionsResolver(
+        print_settings.printer_name, print_settings.print_size, print_settings.printer_options)
+    printing = PrintService(queue, editor, folders, printer, options_resolver)
 
     backend = BackendService(
         backend_url=settings.get_backend_url(),
         client_secret=settings.get_client_secret(),
     )
 
-    return Gateway(settings, folders, archiver, catalog, camera, editor, queue, naming, frame_chooser, printer, backend)
+    return Gateway(settings, folders, archiver, catalog, camera, editor, printing, naming, frame_chooser, backend)
 
 
 def main():

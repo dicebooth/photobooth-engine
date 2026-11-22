@@ -17,7 +17,7 @@ import shutil
 
 from photobooth.api.camera.gphoto2_camera import GPhoto2Camera
 from photobooth.api.camera.hotfolder_camera import HotfolderCamera
-from photobooth.api.printer_api import Printer
+from photobooth.api.printing.cups_printer import CupsPrinter
 
 ASSETS_DIR = os.path.join(os.path.dirname(__file__), 'assets')
 SAMPLE_PHOTO = os.path.join(ASSETS_DIR, 'mock', 'photo.jpg')
@@ -49,14 +49,11 @@ def patch_camera(setattr_func, sample_photo: str = SAMPLE_PHOTO):
 
 def patch_printer(setattr_func, on_print):
     """
-    Method which replaces the Printer methods with test doubles: nothing is sent
+    Method which replaces the CupsPrinter methods with test doubles: nothing is sent
     to a real printer, the edited file is handed to the given callback instead.
     :param setattr_func: function used to override the methods (setattr or monkeypatch.setattr)
     :param on_print: callback invoked with the path of every "printed" file
     """
 
-    setattr_func(Printer, 'prepare', lambda self: None)
-    setattr_func(
-        Printer, 'print_image',
-        lambda self, file_path, printed_photos_number=0: on_print(file_path),
-    )
+    setattr_func(CupsPrinter, 'supported_options', lambda self: '')
+    setattr_func(CupsPrinter, 'send', lambda self, file_path, options: on_print(file_path))

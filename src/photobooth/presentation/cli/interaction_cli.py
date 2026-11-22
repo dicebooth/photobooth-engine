@@ -157,6 +157,18 @@ class CliInteraction:
 
     # ------------------------------------------------------------------- hints
 
+    def show_print_result(self, result):
+        """
+        Method which tells the user the outcome of a print job.
+        :param result: PrintResult of the job
+        """
+
+        if result.ok:
+            print(f'printed {result.photo_path}')
+        else:
+            print(result.error)
+            print(f'The issued photo was: {result.photo_path}')
+
     def wait_for_camera_shutter(self):
         """
         Method which notifies the user to press the shutter button on the camera.

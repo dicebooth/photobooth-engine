@@ -49,7 +49,7 @@ class SessionCli:
         self._gateway.enqueue(photo_path, frame_name, times)
 
         while self._gateway.prints_pending():  # if there are 2 or more photos in queue then start to edit
-            self._gateway.print_next()
+            self._interaction.show_print_result(self._gateway.print_next())
 
     def _recover_or_capture(self) -> str:
         """

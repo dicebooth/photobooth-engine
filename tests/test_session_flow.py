@@ -66,6 +66,9 @@ class ScriptedInteraction:
         self.prompted.append('choose_polaroid_effect')
         return frame_list[0] + '.png'
 
+    def show_print_result(self, result):
+        self.prompted.append('show_print_result')
+
     def choose_times_to_print(self):
         self.prompted.append('choose_times_to_print')
         return self._times_to_print

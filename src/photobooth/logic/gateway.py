@@ -1,5 +1,6 @@
 import os
 
+from photobooth.logic.printing.print_service import PrintResult
 from photobooth.logic.session import disaster_recovery
 
 
@@ -13,7 +14,7 @@ class Gateway:
     user interactions.
     """
 
-    def __init__(self, settings, folders, archiver, catalog, camera, editor, queue, naming, frame_chooser, printer,
+    def __init__(self, settings, folders, archiver, catalog, camera, editor, printing, naming, frame_chooser,
                  backend):
         self._settings = settings
         self._folders = folders
@@ -21,10 +22,9 @@ class Gateway:
         self._catalog = catalog
         self._camera = camera
         self._editor = editor
-        self._queue = queue
+        self._printing = printing
         self._naming = naming
         self._frame_chooser = frame_chooser
-        self._printer = printer
         self._backend = backend
         self._continue = True
 
@@ -36,8 +36,7 @@ class Gateway:
         """
 
         self._camera.init()
-        self._queue.load_queue()
-        self._printer.prepare()
+        self._printing.prepare()
 
     def keep_going(self) -> bool:
         # here in the future a more complex solution
@@ -45,7 +44,7 @@ class Gateway:
 
     def final_cleaning(self):
         self._camera.stop()
-        self._queue.dismiss()
+        self._printing.dismiss()
 
     # ------------------------------------------------------------------ recovery
 
@@ -200,22 +199,18 @@ class Gateway:
 
         effect_path = self._catalog.path_of(frame_name)
         new_photo_path = self._archiver.archive_current(photo_path)
-        self._queue.add_photo(new_photo_path, copies)
-        self._queue.add_edit(effect_path, copies)
+        self._printing.enqueue(new_photo_path, effect_path, copies)
 
     def prints_pending(self) -> bool:
         """
         Method which returns True if there are enough photos in the queue to print.
         """
 
-        return self._queue.queue_is_ready()
+        return self._printing.prints_pending()
 
-    def print_next(self):
+    def print_next(self) -> PrintResult:
         """
         Method which edits the next pair of photos in the queue and prints them.
         """
 
-        photo_list = self._queue.get_photos()
-        edit_list = self._queue.get_edits()
-        joined_photo = self._editor.edit(photo_list, edit_list, self._folders.get_output_folder_path())
-        self._printer.print_image(joined_photo)
+        return self._printing.print_next()
