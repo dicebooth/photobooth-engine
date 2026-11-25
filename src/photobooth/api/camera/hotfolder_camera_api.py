@@ -6,15 +6,16 @@ import time
 from PIL import Image
 
 from photobooth import consts
+from photobooth.api.camera_api import CameraAPI
 from photobooth.logic.capture.photo_id_sequencer import PhotoIdSequencer
 from photobooth.logic.capture.ports import CameraError
 
 logger = logging.getLogger(__name__)
 
 
-class HotfolderCamera:
+class HotfolderCameraAPI(CameraAPI):
     """
-    HotfolderCamera is the WiFi camera driver (it implements CameraPort).
+    HotfolderCameraAPI is the WiFi camera driver (it implements CameraAPI).
 
     It waits for a new photo to appear in the camera hotfolder (for example a
     camera with wireless transfer enabled) and copies it to the destination.

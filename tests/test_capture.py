@@ -2,10 +2,11 @@ import os
 
 import pytest
 
-from photobooth.api.camera.hotfolder_camera import HotfolderCamera
+from photobooth.api.camera.hotfolder_camera_api import HotfolderCameraAPI
+from photobooth.api.camera_api import CameraAPI
 from photobooth.logic.capture.capture_service import CaptureService
 from photobooth.logic.capture.photo_id_sequencer import PhotoIdSequencer
-from photobooth.logic.capture.ports import CameraError, CameraNotFound, CameraPort
+from photobooth.logic.capture.ports import CameraError, CameraNotFound
 from photobooth.logic.editing.naming_service import NamingService
 from photobooth.logic.session.folder_manager import FolderManager
 from photobooth.logic.session.originals_archiver import OriginalsArchiver
@@ -67,7 +68,7 @@ def test_hotfolder_camera_copies_the_new_photo_and_marks_it_read(tmp_path):
     destination = tmp_path / 'dest'
     destination.mkdir()
     state = FakeWifiState(wifi_id=1)
-    camera = HotfolderCamera(str(hotfolder), PhotoIdSequencer(state))
+    camera = HotfolderCameraAPI(str(hotfolder), PhotoIdSequencer(state))
     with open(SAMPLE_PHOTO, 'rb') as src:
         (hotfolder / 'IMG_0002.jpg').write_bytes(src.read())
 
@@ -80,7 +81,7 @@ def test_hotfolder_camera_copies_the_new_photo_and_marks_it_read(tmp_path):
 
 # ------------------------------------------------------------- CaptureService
 
-class ScriptedCamera:
+class ScriptedCamera(CameraAPI):
     """Fails with the given errors (one per call, init and capture share the script), then succeeds."""
 
     def __init__(self, failures=()):
@@ -128,9 +129,9 @@ def _capture_service(tmp_path, camera, sleeps, **settings):
     return service, folders, naming_state
 
 
-def test_camera_adapters_satisfy_the_camera_port(tmp_path):
-    assert isinstance(ScriptedCamera(), CameraPort)
-    assert isinstance(HotfolderCamera(str(tmp_path), PhotoIdSequencer(FakeWifiState())), CameraPort)
+def test_camera_adapters_implement_camera_api(tmp_path):
+    assert isinstance(ScriptedCamera(), CameraAPI)
+    assert isinstance(HotfolderCameraAPI(str(tmp_path), PhotoIdSequencer(FakeWifiState())), CameraAPI)
 
 
 def test_prepare_waits_for_the_camera_forever(tmp_path):

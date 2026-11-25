@@ -3,7 +3,8 @@ import threading
 import time
 from typing import Callable
 
-from photobooth.logic.capture.ports import CameraError, CameraPort
+from photobooth.api.camera_api import CameraAPI
+from photobooth.logic.capture.ports import CameraError
 from photobooth.logic.editing.naming_service import NamingService
 from photobooth.logic.session.folder_manager import FolderManager
 from photobooth.logic.session.originals_archiver import OriginalsArchiver
@@ -24,7 +25,7 @@ class CaptureService:
     it succeeds or request_stop() is called.
     """
 
-    def __init__(self, camera: CameraPort, folders: FolderManager, archiver: OriginalsArchiver,
+    def __init__(self, camera: CameraAPI, folders: FolderManager, archiver: OriginalsArchiver,
                  naming: NamingService, settings: CaptureSettings,
                  sleep: Callable[[float], None] = time.sleep):
         self._camera = camera

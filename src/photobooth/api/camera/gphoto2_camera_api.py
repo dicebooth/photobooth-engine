@@ -2,13 +2,14 @@ import os
 import subprocess
 
 from photobooth import consts
+from photobooth.api.camera_api import CameraAPI
 from photobooth.logic.capture.ports import CameraError, CameraNotFound
 
 
-class GPhoto2Camera:
+class GPhoto2CameraAPI(CameraAPI):
     """
-    GPhoto2Camera is the USB camera driver based on the gphoto2 library
-    (it implements CameraPort).
+    GPhoto2CameraAPI is the USB camera driver based on the gphoto2 library
+    (it implements CameraAPI).
 
     This driver is the only place where gphoto2 is used: swapping the camera
     library means writing a new driver, without touching the rest of the

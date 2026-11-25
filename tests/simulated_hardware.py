@@ -15,9 +15,9 @@ original methods are restored automatically), the simulator passes the built-in
 import os
 import shutil
 
-from photobooth.api.camera.gphoto2_camera import GPhoto2Camera
-from photobooth.api.camera.hotfolder_camera import HotfolderCamera
-from photobooth.api.printing.cups_printer import CupsPrinter
+from photobooth.api.camera.gphoto2_camera_api import GPhoto2CameraAPI
+from photobooth.api.camera.hotfolder_camera_api import HotfolderCameraAPI
+from photobooth.api.printer.cups_printer import CupsPrinter
 
 ASSETS_DIR = os.path.join(os.path.dirname(__file__), 'assets')
 SAMPLE_PHOTO = os.path.join(ASSETS_DIR, 'mock', 'photo.jpg')
@@ -29,7 +29,7 @@ def patch_camera(setattr_func, sample_photo: str = SAMPLE_PHOTO):
     Method which replaces the camera driver methods with test doubles: every
     capture copies the given sample photo instead of talking to a real camera.
 
-    Both concrete drivers are patched (the factory build_camera() returns one
+    Both concrete drivers are patched (build_services() instantiates one
     of them), so this works whatever camera connection the settings select.
     :param setattr_func: function used to override the methods (setattr or monkeypatch.setattr)
     :param sample_photo: path of the photo returned by every simulated shot
@@ -40,7 +40,7 @@ def patch_camera(setattr_func, sample_photo: str = SAMPLE_PHOTO):
         shutil.copyfile(sample_photo, target)
         return target
 
-    for driver in (GPhoto2Camera, HotfolderCamera):
+    for driver in (GPhoto2CameraAPI, HotfolderCameraAPI):
         setattr_func(driver, 'init', lambda self: None)
         setattr_func(driver, 'stop', lambda self: None)
         setattr_func(driver, 'capture_via_camera', fake_capture)

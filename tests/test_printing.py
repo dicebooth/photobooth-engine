@@ -2,7 +2,7 @@ import os
 
 from PIL import Image
 
-from photobooth.api.printing.hotfolder_printer import HotfolderPrinter
+from photobooth.api.printer.hotfolder_printer import HotfolderPrinter
 from photobooth.logic.editing.editor_service import EditorService
 from photobooth.logic.frames.frame_compositor import FrameCompositor
 from photobooth.logic.printing.ports import PrintFailed

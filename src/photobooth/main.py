@@ -3,11 +3,12 @@ import os
 from dataclasses import dataclass
 
 from photobooth import consts
-from photobooth.api.backend.backend import PhotoAPIClient
-from photobooth.api.camera.camera_factory import build_camera
+from photobooth.api.camera.gphoto2_camera_api import GPhoto2CameraAPI
+from photobooth.api.camera.hotfolder_camera_api import HotfolderCameraAPI
+from photobooth.api.photo_api import PhotoAPI
 from photobooth.api.platform_api import detect_os
-from photobooth.api.printing.cups_printer import CupsPrinter
-from photobooth.api.printing.hotfolder_printer import HotfolderPrinter
+from photobooth.api.printer.cups_printer import CupsPrinter
+from photobooth.api.printer.hotfolder_printer import HotfolderPrinter
 from photobooth.db.state_store import StateStore
 from photobooth.logic.capture.capture_service import CaptureService
 from photobooth.logic.capture.photo_id_sequencer import PhotoIdSequencer
@@ -60,11 +61,11 @@ def setup_console_logging() -> None:
     (camera waiting, retries, ...). The upload logger has its own file and does not propagate.
     """
 
-    logger = logging.getLogger('photobooth')
+    logger = logging.getLogger("photobooth")
     logger.setLevel(logging.INFO)
     if not logger.handlers:
         handler = logging.StreamHandler()
-        handler.setFormatter(logging.Formatter('%(message)s'))
+        handler.setFormatter(logging.Formatter("%(message)s"))
         logger.addHandler(handler)
 
 
@@ -87,17 +88,26 @@ def build_services(home: str, settings: Settings) -> Services:
 
     # ---- capture
     capture_settings = settings.capture
-    camera = build_camera(
-        camera_name=capture_settings.cam_name,
-        connection=capture_settings.camera_connection,
-        hotfolder_path=capture_settings.camera_hotfolder_path,
-        sequencer=PhotoIdSequencer(state_store),
-    )
+    if capture_settings.camera_connection == "wifi":
+        if not capture_settings.camera_hotfolder_path:
+            raise ValueError(
+                "WiFi camera connection requires 'camera_hotfolder_path' in settings.yaml: "
+                "check the camera configuration."
+            )
+        camera = HotfolderCameraAPI(
+            capture_settings.camera_hotfolder_path, PhotoIdSequencer(state_store)
+        )
+    else:
+        camera = GPhoto2CameraAPI(capture_settings.cam_name)
     capture = CaptureService(camera, folders, archiver, naming, capture_settings)
 
     # ---- frames and editing
     compositor = FrameCompositor()
-    frames = FrameService(FrameCatalog(os.path.join(home, consts.ASSETS_DIRNAME)), compositor, settings.frames)
+    frames = FrameService(
+        FrameCatalog(os.path.join(home, consts.ASSETS_DIRNAME)),
+        compositor,
+        settings.frames,
+    )
     editor = EditorService(compositor)
 
     # ---- printing
@@ -107,13 +117,21 @@ def build_services(home: str, settings: Settings) -> Services:
     else:
         printer = CupsPrinter(print_settings.printer_name)
     options_resolver = PrintOptionsResolver(
-        print_settings.printer_name, print_settings.print_size, print_settings.printer_options)
-    printing = PrintService(QueueService(state_store), editor, folders, printer, options_resolver)
+        print_settings.printer_name,
+        print_settings.print_size,
+        print_settings.printer_options,
+    )
+    printing = PrintService(
+        QueueService(state_store), editor, folders, printer, options_resolver
+    )
 
     # ---- uploads
     upload_settings = settings.uploads
     uploads = UploadService(
-        PhotoAPIClient(base_url=upload_settings.backend_url, client_secret=upload_settings.client_secret),
+        PhotoAPI(
+            base_url=upload_settings.backend_url,
+            client_secret=upload_settings.client_secret,
+        ),
         PhotoEncoder(),
     )
 
@@ -127,8 +145,15 @@ def build_session(services: Services, interaction) -> SessionCli:
     :param interaction: user interaction implementation (CliInteraction, or a test double)
     """
 
-    return SessionCli(services.capture, services.frames, services.recovery, services.archiver,
-                      services.printing, services.uploads, interaction)
+    return SessionCli(
+        services.capture,
+        services.frames,
+        services.recovery,
+        services.archiver,
+        services.printing,
+        services.uploads,
+        interaction,
+    )
 
 
 def main():
@@ -148,5 +173,5 @@ def main():
     build_session(services, interaction).run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

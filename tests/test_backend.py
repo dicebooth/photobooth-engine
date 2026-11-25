@@ -4,15 +4,15 @@ import socket
 import pytest
 from PIL import Image, ImageChops
 
-from photobooth.api.backend.backend import PhotoAPIClient
+from photobooth.api.photo_api import PhotoAPI
 from photobooth.consts import DEFAULT_BACKEND_URL
 from photobooth.logic.editing.photo_encoder import PhotoEncoder
 
-ASSETS_DIR = os.path.join(os.path.dirname(__file__), 'assets')
+ASSETS_DIR = os.path.join(os.path.dirname(__file__), "assets")
 
 # This is an integration test: it runs only when explicitly enabled, so the
 # default test suite never depends on an external service.
-RUN_BACKEND_TESTS_ENV = 'PHOTOBOOTH_RUN_BACKEND_TESTS'
+RUN_BACKEND_TESTS_ENV = "PHOTOBOOTH_RUN_BACKEND_TESTS"
 
 
 def backend_is_reachable(url: str = DEFAULT_BACKEND_URL) -> bool:
@@ -20,9 +20,10 @@ def backend_is_reachable(url: str = DEFAULT_BACKEND_URL) -> bool:
     Helper function which verifies if a backend is listening on the given URL.
     """
     from urllib.parse import urlparse
+
     parsed = urlparse(url)
-    host = parsed.hostname or 'localhost'
-    port = parsed.port or (443 if parsed.scheme == 'https' else 80)
+    host = parsed.hostname or "localhost"
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
     try:
         with socket.create_connection((host, port), timeout=0.5):
             return True
@@ -31,7 +32,7 @@ def backend_is_reachable(url: str = DEFAULT_BACKEND_URL) -> bool:
 
 
 pytestmark = pytest.mark.skipif(
-    os.environ.get(RUN_BACKEND_TESTS_ENV) != '1' or not backend_is_reachable(),
+    os.environ.get(RUN_BACKEND_TESTS_ENV) != "1" or not backend_is_reachable(),
     reason=(
         f"Backend integration test disabled by default: start a backend on {DEFAULT_BACKEND_URL} "
         f"and set {RUN_BACKEND_TESTS_ENV}=1 to run it."
@@ -46,9 +47,9 @@ def images_equal(a, b):
 
 
 def test_backend():
-    test_image_path = os.path.join(ASSETS_DIR, 'test.png')
+    test_image_path = os.path.join(ASSETS_DIR, "test.png")
     image = Image.open(test_image_path)
-    backend = PhotoAPIClient()
+    backend = PhotoAPI()
 
     uuid = backend.upload(PhotoEncoder().to_png_base64(image))
     server_image = backend.download_image_by_id(uuid)

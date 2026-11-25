@@ -10,7 +10,12 @@ from uuid import UUID
 import httpx
 from PIL import Image
 
-from photobooth.consts import LOGGER_NAME, DEFAULT_BACKEND_URL, DEFAULT_CLIENT_ID, DEFAULT_TIMEOUT
+from photobooth.consts import (
+    LOGGER_NAME,
+    DEFAULT_BACKEND_URL,
+    DEFAULT_CLIENT_ID,
+    DEFAULT_TIMEOUT,
+)
 from photobooth.logic.uploads.ports import BackendUnavailable
 
 # Use logger configured in main (coherent name)
@@ -20,7 +25,7 @@ logger = logging.getLogger(LOGGER_NAME)
 _NETWORK_ERRORS = (httpx.TimeoutException, httpx.ConnectError, httpx.ReadError)
 
 
-class PhotoAPIClient:
+class PhotoAPI:
     """
     PhotoAPIClient is the HTTP client of the photo backend.
 
@@ -30,11 +35,11 @@ class PhotoAPIClient:
     """
 
     def __init__(
-            self,
-            base_url: str = DEFAULT_BACKEND_URL,
-            client_id: str = DEFAULT_CLIENT_ID,
-            client_secret: str = None,
-            timeout: Tuple[float, float] = DEFAULT_TIMEOUT,
+        self,
+        base_url: str = DEFAULT_BACKEND_URL,
+        client_id: str = DEFAULT_CLIENT_ID,
+        client_secret: str = None,
+        timeout: Tuple[float, float] = DEFAULT_TIMEOUT,
     ):
         self.base_url = base_url.rstrip("/")
         self.client_id = client_id
@@ -92,10 +97,16 @@ class PhotoAPIClient:
                 r = client.post(f"{self.base_url}/photos", json={"data": png_base64})
 
                 if r.status_code == 401 and self.client_secret:
-                    logger.warning(f"401 Unauthorized for '{photo_name}', retrying login")
+                    logger.warning(
+                        f"401 Unauthorized for '{photo_name}', retrying login"
+                    )
                     self.login(force=True)
-                    with httpx.Client(timeout=self.timeout, headers=self.headers) as retry_client:
-                        r = retry_client.post(f"{self.base_url}/photos", json={"data": png_base64})
+                    with httpx.Client(
+                        timeout=self.timeout, headers=self.headers
+                    ) as retry_client:
+                        r = retry_client.post(
+                            f"{self.base_url}/photos", json={"data": png_base64}
+                        )
 
                 r.raise_for_status()
 
@@ -122,7 +133,7 @@ class PhotoAPIClient:
                 logger.warning(f"401 Unauthorized for GET photo {photo_id}, retrying")
                 self.login(force=True)
                 with httpx.Client(
-                        timeout=self.timeout, headers=self.headers
+                    timeout=self.timeout, headers=self.headers
                 ) as retry_client:
                     r = retry_client.get(f"{self.base_url}/photos/{photo_id}")
 
@@ -135,7 +146,7 @@ class PhotoAPIClient:
             if r.status_code == 401 and self.client_secret:
                 self.login(force=True)
                 with httpx.Client(
-                        timeout=self.timeout, headers=self.headers
+                    timeout=self.timeout, headers=self.headers
                 ) as retry_client:
                     r = retry_client.get(raw_url)
             r.raise_for_status()
